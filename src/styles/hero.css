@@ -73,6 +73,9 @@
   .hero-video {
     position: relative;
     height: 360px;
+    /* Load-bearing: the wrapper is shrink-to-fit (justify-self:
+       center), so this ratio is what gives the panel its width. */
+    aspect-ratio: 1.45;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -112,9 +115,33 @@
 
   /* ---------- Responsive ---------- */
 
+  /*
+    Above 1100px the media panel keeps its intrinsic 522x360 size,
+    which is what pins the right column to 540px.
+
+    Below it that intrinsic width no longer fits: it used to blow the
+    grid track out past the container, pushing the panel (and on
+    mobile the whole hero) off-screen. From here down the panel is
+    fluid and aspect-ratio drives its height instead.
+  */
+  @media (max-width: 1100px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    }
+
+    .hero-video-wrapper {
+      width: 100%;
+    }
+
+    .hero-video {
+      width: 100%;
+      height: auto;
+    }
+  }
+
   @media (max-width: 900px) {
     .hero {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 45px;
     }
 
@@ -122,7 +149,7 @@
       text-align: center;
     }
 
-    /* margin-inline (not `margin: auto`) so the 32px gap above
+    /* margin-inline, not the shorthand, so the 32px gap above
        the CTA survives the centering. */
     .hero-description {
       margin-inline: auto;
