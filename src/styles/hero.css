@@ -1,0 +1,131 @@
+/* ============================================================
+   HERO
+
+   Same composition, type scale and colours as before; the
+   inline styles are now real rules so the responsive layer
+   below can actually take effect on tablet and mobile.
+============================================================ */
+
+@layer components {
+  .hero {
+    position: relative;
+    z-index: 10;
+    width: min(var(--container-max), calc(100% - 2 * var(--container-gutter)));
+    margin-inline: auto;
+    min-height: 80vh;
+    padding: var(--spacing-section) var(--spacing-inline);
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .hero-copy {
+    padding-top: 20px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+    padding: 6px 14px;
+    border: 1px solid var(--color-border-accent);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--color-accent-lilac);
+    font-size: var(--text-label);
+  }
+
+  .hero-title {
+    margin: 0 0 24px;
+    font-family: var(--font-display);
+    font-size: clamp(44px, 5.5vw, 78px);
+    font-weight: var(--font-weight-display);
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+  }
+
+  .hero-title .text-gradient {
+    --gradient: var(--gradient-heading);
+  }
+
+  .hero-description {
+    max-width: 420px;
+    margin: 0 0 32px;
+    color: var(--color-text-secondary);
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+
+  /* ---------- Media panel ---------- */
+
+  .hero-video-wrapper {
+    position: relative;
+    justify-self: center;
+    max-width: 540px;
+    padding: 10px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-panel);
+    background: var(--color-glass);
+  }
+
+  .hero-video {
+    position: relative;
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--color-border-accent-strong);
+    border-radius: var(--radius-media);
+    background: var(--gradient-well);
+    box-shadow: var(--shadow-media);
+  }
+
+  .hero-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-bubble {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 90px;
+    height: 90px;
+    margin-bottom: 12px;
+    border: 1px solid var(--color-border-bright);
+    border-radius: 50%;
+    background: var(--gradient-avatar);
+    font-size: 36px;
+  }
+
+  .avatar-status {
+    color: var(--color-text-bright);
+    font-size: var(--text-caption);
+    font-weight: var(--font-weight-strong);
+    letter-spacing: 1.5px;
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 45px;
+    }
+
+    .hero-copy {
+      text-align: center;
+    }
+
+    /* margin-inline (not `margin: auto`) so the 32px gap above
+       the CTA survives the centering. */
+    .hero-description {
+      margin-inline: auto;
+    }
+  }
+}

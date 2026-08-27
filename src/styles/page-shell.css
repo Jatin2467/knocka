@@ -1,0 +1,31 @@
+/* ============================================================
+   PAGE SHELL
+
+   The page wrapper and the fixed canvas layer the DNA
+   animation paints into.
+============================================================ */
+
+@layer components {
+  .knocka-page {
+    position: relative;
+    /* Placeholder height that keeps the DNA animation's scroll
+       reaction meaningful until the remaining sections land. */
+    min-height: var(--page-min-height);
+    /* `clip` instead of `hidden`: it contains horizontal overflow
+       without creating a scroll container, so sticky scroll
+       scenes will still work inside the page. */
+    overflow-x: clip;
+    background: var(--color-void);
+    color: var(--color-text-primary);
+  }
+
+  .dna-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+  }
+}

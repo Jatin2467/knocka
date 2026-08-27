@@ -1,0 +1,25 @@
+/* ============================================================
+   KNOCKA GLOBAL STYLESHEET
+
+   Single entry point for styling. Cascade order matters:
+
+     1. tokens      design tokens + Tailwind theme (@theme)
+     2. base        reset and document defaults   (@layer base)
+     3. utilities   reusable primitives           (@layer components)
+     4. components  page shell, header, hero, buttons
+     5. sections    styles reserved for unbuilt sections
+
+   Everything after `tokens` is layered, so Tailwind utility
+   classes always win over project CSS.
+============================================================ */
+
+@import "tailwindcss";
+
+@import "../styles/tokens.css";
+@import "../styles/base.css";
+@import "../styles/utilities.css";
+@import "../styles/page-shell.css";
+@import "../styles/buttons.css";
+@import "../styles/site-header.css";
+@import "../styles/hero.css";
+@import "../styles/sections.css";

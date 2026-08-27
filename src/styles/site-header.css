@@ -1,0 +1,76 @@
+/* ============================================================
+   SITE HEADER
+
+   Values carried over 1:1 from the inline styles the header
+   used to declare. The only new behaviour is responsive:
+   the inline `display: flex` on .nav-links used to beat the
+   `@media (max-width: 900px) { display: none }` rule, so the
+   nav never collapsed and the CTAs were pushed off-screen.
+============================================================ */
+
+@layer components {
+  .navbar {
+    position: relative;
+    z-index: 10;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px var(--spacing-inline);
+    border-bottom: 1px solid var(--color-border-faint);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-primary);
+    font-size: 20px;
+    font-weight: var(--font-weight-strong);
+    letter-spacing: -0.6px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    color: var(--color-accent-purple);
+    font-size: 16px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .nav-links a:hover {
+    color: var(--color-text-primary);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  @media (max-width: 900px) {
+    .nav-links {
+      display: none;
+    }
+  }
+
+  /* Below this width the logo + both CTAs no longer fit on one
+     line, which is what pushed the buttons past the viewport. */
+  @media (max-width: 480px) {
+    .nav-actions .btn-ghost {
+      display: none;
+    }
+  }
+}

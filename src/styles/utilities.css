@@ -1,0 +1,56 @@
+/* ============================================================
+   REUSABLE UTILITIES
+
+   Small, composable pieces of the existing visual language.
+   Kept in @layer components so Tailwind utilities still win.
+============================================================ */
+
+@layer components {
+  /* Centered content column used by every full-width section. */
+  .container {
+    width: min(var(--container-max), calc(100% - 2 * var(--container-gutter)));
+    margin-inline: auto;
+  }
+
+  /* Horizontal page padding for edge-to-edge bands. */
+  .page-inline {
+    padding-inline: var(--spacing-inline);
+  }
+
+  /* Frosted panel: translucent fill + hairline border. */
+  .glass {
+    background: var(--color-glass);
+    border: 1px solid var(--color-border-subtle);
+  }
+
+  .glass-control {
+    background: var(--color-glass-strong);
+    border: 1px solid var(--color-border-glass);
+  }
+
+  .glass-blur {
+    backdrop-filter: blur(var(--blur-glass));
+  }
+
+  /* Gradient-filled text. Set --gradient on the element to change it. */
+  .text-gradient {
+    background-image: var(--gradient, var(--gradient-brand));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Soft atmospheric glow, painted behind the element. */
+  .glow::before {
+    content: "";
+    position: absolute;
+    top: 25%;
+    left: 15%;
+    width: 70%;
+    height: 50%;
+    background: var(--glow-color, var(--glow-purple));
+    filter: blur(var(--blur-glow));
+    opacity: var(--glow-opacity, 0.08);
+    pointer-events: none;
+  }
+}
