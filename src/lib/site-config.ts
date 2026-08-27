@@ -57,3 +57,40 @@ export const socialGroup: FooterGroup = {
     { label: "YouTube", href: "#" },
   ],
 };
+
+export interface Room {
+  readonly id: string;
+  readonly ordinal: string;
+  readonly name: string;
+  readonly line: string;
+  readonly video: string;
+  /** Portal glow for this world. The three step through the brand gradient. */
+  readonly glow: string;
+}
+
+export const rooms: readonly Room[] = [
+  {
+    id: "coffee-shop",
+    ordinal: "01",
+    name: "Coffee shop",
+    line: "Slow conversations.",
+    video: "/videos/coffee-shop.mp4",
+    glow: "168, 85, 247",
+  },
+  {
+    id: "disco-club",
+    ordinal: "02",
+    name: "Disco club",
+    line: "Turn the moment up.",
+    video: "/videos/disco-club.mp4",
+    glow: "236, 72, 153",
+  },
+  {
+    id: "ice-cream-shop",
+    ordinal: "03",
+    name: "Ice cream shop",
+    line: "Just hanging out.",
+    video: "/videos/ice-cream-shop.mp4",
+    glow: "56, 189, 248",
+  },
+];

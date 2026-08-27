@@ -1,0 +1,299 @@
+/* ============================================================
+   ROOMS — "arrival"
+
+   A pinned portal you travel forward through. The three worlds
+   are stacked in Z inside one cinematic frame; scroll flies the
+   camera through them, so the outgoing world passes the lens
+   while the next scales up from behind.
+
+   Everything animated here is transform or opacity. No filters
+   on moving layers: the DNA canvas repaints continuously behind
+   this section, and any blur or shadow on a moving element would
+   re-rasterise every frame.
+
+   The portal sits over the existing fixed DNA canvas rather than
+   introducing a second one, and the three glows step purple ->
+   magenta -> cyan, so travelling the rooms walks the brand
+   gradient.
+============================================================ */
+
+@layer components {
+  .rooms {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ---------- Intro ---------- */
+
+  .rooms-intro {
+    width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
+    margin-inline: auto;
+    padding-block: clamp(88px, 13vh, 168px) clamp(32px, 5vh, 64px);
+    text-align: center;
+  }
+
+  .rooms-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 22px;
+    padding: 7px 15px;
+    border: 1px solid var(--color-border-accent);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--color-accent-lilac);
+    font-size: var(--text-label);
+  }
+
+  .rooms-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(34px, 6.6vw, 96px);
+    font-weight: var(--font-weight-display);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  .rooms-title-line {
+    display: block;
+  }
+
+  .rooms-title .text-gradient {
+    --gradient: var(--gradient-heading);
+  }
+
+  .rooms-lead {
+    max-width: 54ch;
+    margin: clamp(20px, 2.6vw, 28px) auto 0;
+    color: var(--color-text-secondary);
+    font-size: clamp(15px, 1.1vw, 17px);
+    line-height: 1.62;
+  }
+
+  /* ---------- Pinned runway ---------- */
+
+  .rooms-runway {
+    height: 340vh;
+  }
+
+  .rooms-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: clamp(20px, 2.6vh, 34px);
+    padding: clamp(84px, 11vh, 120px) var(--container-gutter)
+      clamp(28px, 5vh, 56px);
+  }
+
+  /* ---------- Portal ---------- */
+
+  .rooms-portal-wrap {
+    --room-ratio: 2.2857;
+
+    position: relative;
+    width: min(var(--stage-max), 100%, calc(58svh * var(--room-ratio)));
+  }
+
+  .rooms-portal {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    aspect-ratio: var(--room-ratio);
+    overflow: hidden;
+    border-radius: clamp(16px, 1.6vw, 28px);
+    background: #05040a;
+  }
+
+  .room-scene {
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+  }
+
+  .room-scene video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .room-scene-scrim {
+    position: absolute;
+    inset: 0;
+    background: #04030a;
+    pointer-events: none;
+  }
+
+  .rooms-portal-edge {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    border: 1px solid var(--color-border-glass);
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+
+  /* ---------- Atmosphere ---------- */
+
+  .rooms-glow {
+    position: absolute;
+    inset: -24% -2%;
+    pointer-events: none;
+  }
+
+  .rooms-glow-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgba(var(--glow), 0.42) 0%,
+      rgba(var(--glow), 0.16) 44%,
+      transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 0.9s ease;
+  }
+
+  .rooms-glow-layer[data-on="true"] {
+    opacity: 1;
+  }
+
+  /* ---------- Caption + progress ---------- */
+
+  .rooms-caption {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    width: min(var(--stage-max), 100%, calc(58svh * 2.2857));
+  }
+
+  .rooms-caption-slot {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 58px;
+  }
+
+  .rooms-caption-item {
+    position: absolute;
+    inset: 0;
+  }
+
+  .rooms-caption-name {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2vw, 26px);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: -0.01em;
+  }
+
+  .rooms-caption-ordinal {
+    color: var(--color-accent-violet);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+  }
+
+  .rooms-caption-line {
+    margin: 6px 0 0;
+    color: var(--color-text-secondary);
+    font-size: clamp(13px, 1vw, 15px);
+  }
+
+  .room-progress {
+    display: flex;
+    align-items: center;
+    flex: none;
+    /* Sits on the room name, which is the dominant line of the caption. */
+    padding-top: 10px;
+  }
+
+  .room-progress-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .room-progress-track {
+    display: block;
+    position: relative;
+    width: clamp(26px, 4.5vw, 62px);
+    height: 1px;
+    margin-left: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .room-progress-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    background: linear-gradient(
+      90deg,
+      var(--color-accent-purple),
+      var(--color-accent-cyan)
+    );
+  }
+
+  .room-progress-ordinal {
+    color: rgba(255, 255, 255, 0.26);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    transition: color 0.5s ease;
+  }
+
+  .room-progress-ordinal[data-state="past"] {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .room-progress-ordinal[data-state="active"] {
+    color: var(--color-text-primary);
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 900px) {
+    .rooms-portal-wrap {
+      --room-ratio: 1.7778;
+    }
+
+    .rooms-caption {
+      width: min(var(--stage-max), 100%, calc(58svh * 1.7778));
+    }
+
+    .rooms-runway {
+      height: 300vh;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .rooms-portal-wrap {
+      --room-ratio: 1.3333;
+    }
+
+    .rooms-caption {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .rooms-caption-slot {
+      width: 100%;
+      min-height: 50px;
+    }
+  }
+}

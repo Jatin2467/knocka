@@ -178,6 +178,103 @@ with the footer filling the viewport.
 - `src/components/sections/Footer/Footer.tsx`, `StoreBadges.tsx`, `index.ts`
 - `src/styles/footer.css`
 - `src/lib/site-config.ts` — `footerGroups`, `socialGroup`
+---
+
+## Phase 2C — Rooms
+
+### Chosen interaction: depth arrival
+
+Three concepts were weighed: a vertical world-reel with counter-parallax, a
+portal that widens from message-frame to cinemascope, and a depth stack.
+
+**Depth stack won.** The three worlds are layered in Z inside one pinned
+cinematic frame; scroll flies the camera forward, so the world you leave comes
+toward you and passes the lens while the next scales up from behind. It is the
+only one of the three that says *arrival* — which is the brand — and it is pure
+transform/opacity, so it cannot threaten the DNA canvas budget. The widening
+portal was rejected because it needs animated clip-path/layout on a large video
+layer every frame, and it would crop the cinematography differently per room.
+
+Outgoing worlds paint **above** incoming ones (`zIndex: total - index`), which
+is what makes it read as flying through rather than cross-dissolving.
+
+### Scroll architecture
+
+`.rooms-runway` (340vh, 300vh under 900px) holds a `position: sticky` stage.
+`useScroll({ target: runwayRef, offset: ["start start", "end end"] })` maps the
+pinned distance to 0→1. Each `RoomScene` derives its own transforms from that
+single value.
+
+**Two traps worth knowing, both cost real debugging time:**
+
+1. **Transform input ranges must stay inside `[0, 1]`.** Framer Motion v13 hands
+   scroll-linked chains to the browser as native WAAPI animations, where the
+   input range becomes keyframe *offsets*. A stop at `-0.1` threw
+   `Offsets must be monotonically non-decreasing` at mount and blanked the whole
+   page. The outer worlds now get three stops instead of four.
+2. **That acceleration is desynced from `useScroll` offsets.** Once accelerated,
+   framer stops writing the JS value and the native ViewTimeline drives it — but
+   it reported 52.8% progress at the end of the runway, so the first world faded
+   back in over the last. Acceleration only attaches when a transform maps an
+   array range straight off the scroll value, so `Rooms.tsx` routes progress
+   through one identity function transform to detach it. **Keep that
+   indirection**; removing it silently reintroduces the bug.
+
+### Video behaviour
+
+All three are 1536x672 (2.29:1 cinemascope), 8s, muted + `playsInline` + `loop`.
+
+- `src` is withheld until `useInView` says the section is within 80% of the
+  viewport, so the page never pays 6.3MB on first load.
+- Playback is gated by a bitmask off scroll position. Only the active world
+  decodes; the next warms at 72% through the previous band.
+- The outgoing world **freezes** once the label swaps rather than playing
+  through its fade. Two videos decoding at once halves the canvas frame rate,
+  and by then it is scaling away, so a still frame does not read.
+- `aspect-ratio` on the frame matches the source exactly, so there is no layout
+  shift and no letterbox.
+
+### Responsive
+
+The frame trades width for height as the screen narrows, so the avatars stay
+large instead of the video becoming a slot: 2.29:1 above 900px, 16:9 to 560px,
+4:3 below. Checked against the source frames — both avatars survive the 4:3
+crop. The width also carries an `svh` term so the frame always fits a short
+viewport without breaking ratio. Caption and progress stack under 560px.
+
+### Performance
+
+- No second canvas. The portal floats over the existing fixed DNA canvas, and
+  the three glows step purple -> magenta -> cyan, so travelling the rooms walks
+  the brand gradient. That is the whole DNA tie-in.
+- Glows crossfade by class with a CSS transition, not a per-frame style write.
+- A scrim div carries the depth dimming instead of a `brightness()` filter — no
+  filters on moving layers, per the drop-shadow lesson above.
+- Canvas holds **60fps** while a world is pinned. It dips to **~33fps** during a
+  crossfade, when two videos decode. Measured in headless Chrome with
+  `--disable-gpu`, so that is software decode and a worst case; the overlap is
+  already as short as the crossfade allows. Worth re-measuring on real hardware
+  before optimising further.
+
+### Validation
+
+`tsc` clean, `eslint` clean, production build clean. No horizontal overflow at
+320/375/390/768/1024/1280/1440/1920. Sticky confirmed working under
+`.knocka-page { overflow-x: clip }`. Reduced motion drops scale, drift and the
+scrim and leaves a plain opacity crossfade. DNA rotation and scroll reaction
+unchanged; header, hero and footer untouched.
+
+### Files added
+
+- `src/components/sections/Rooms/Rooms.tsx`, `RoomScene.tsx`, `RoomProgress.tsx`, `index.ts`
+- `src/styles/rooms.css`
+- `src/lib/site-config.ts` — `rooms`
+
+### Note
+
+Lenis is installed but still unused. Enabling it would smooth every scroll-driven
+section, but it changes the feel of the header, hero parallax and DNA reaction
+too, so it was left alone here — it should be its own decision.
 ### Files changed
 
 - `src/app/layout.tsx` — fonts, noscript reveal safeguard
