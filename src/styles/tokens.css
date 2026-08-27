@@ -50,8 +50,9 @@
   --radius-pill: 20px;
 
   /* ---------- Typography ---------- */
-  --font-sans: Inter, Arial, sans-serif;
-  --font-display: var(--font-sans); /* reserved: design phase picks a display face */
+  /* next/font supplies --font-inter / --font-outfit on <html>. */
+  --font-sans: var(--font-inter), Inter, Arial, sans-serif;
+  --font-display: var(--font-outfit), Outfit, var(--font-sans);
 
   --text-label: 12px; /* eyebrow / small labels */
   --text-nav: 13px; /* buttons + nav controls */
@@ -66,7 +67,9 @@
 
   /* ---------- Spacing / layout ---------- */
   --container-max: 1160px;
-  --container-gutter: 20px; /* min(1160px, 100% - 2 * gutter) */
+  /* Page side margin. Scales up on wider screens so the composition
+     never runs to the edge of the glass. */
+  --container-gutter: clamp(24px, 3vw, 40px);
   --spacing-inline: 5%; /* horizontal page padding */
   --spacing-section: 60px; /* vertical section padding */
 
@@ -106,9 +109,18 @@
   --shadow-glow-soft: 0 0 25px rgba(147, 45, 255, 0.16);
   --shadow-glow-strong: 0 8px 35px rgba(147, 45, 255, 0.28);
 
+  /* Floating header control layer */
+  --surface-header: rgba(10, 8, 16, 0.55);
+  --surface-header-dense: rgba(10, 8, 16, 0.82);
+  --shadow-header: 0 20px 50px -24px rgba(0, 0, 0, 0.95);
+  --shadow-header-glow: 0 0 44px -14px rgba(168, 85, 247, 0.4);
+  --hairline-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* Hero stage */
+  --stage-max: 1240px;
+
   --selection-bg: #963cff;
 
-  /* Placeholder page height that gives the DNA canvas room to react
-     to scroll until the remaining sections are built. */
-  --page-min-height: 220vh;
+  /* Retired: the hero + footer now give the DNA canvas its scroll
+     range, so .knocka-page no longer needs a placeholder height. */
 }

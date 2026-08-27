@@ -8,9 +8,7 @@
 @layer components {
   .knocka-page {
     position: relative;
-    /* Placeholder height that keeps the DNA animation's scroll
-       reaction meaningful until the remaining sections land. */
-    min-height: var(--page-min-height);
+    min-height: 100vh;
     /* `clip` instead of `hidden`: it contains horizontal overflow
        without creating a scroll container, so sticky scroll
        scenes will still work inside the page. */
