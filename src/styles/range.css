@@ -1,0 +1,353 @@
+/* ============================================================
+   RANGE (S3) — "YOUR FACE. YOUR VOICE. YOUR KNOCK."
+
+   The quiet section, and deliberately the cheapest one on the
+   page: no pin, no scroll-linked value, no video, no canvas, no
+   filter on anything. Every animation here is a one-shot reveal
+   that runs when the section comes into view and then stops.
+
+   The composition is one avatar held still, and one hairline
+   spine running through three states beside it. The spine is
+   what stops these being three cards — it makes them one
+   argument — and it carries the brand gradient purple ->
+   magenta -> cyan on its way down, so the section reads as
+   Knocka without a single glow.
+
+   Authored mobile-first; the two-column composition starts at
+   901px, matching the hero's breakpoint.
+============================================================ */
+
+@layer components {
+  .range {
+    position: relative;
+    z-index: 10;
+  }
+
+  .range-inner {
+    width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
+    margin-inline: auto;
+    padding-block: clamp(88px, 13vh, 168px);
+  }
+
+  /* ---------- Head ---------- */
+
+  /* Left-aligned, where Rooms and S2 are centred. The page alternates. */
+  .range-head {
+    margin-bottom: clamp(44px, 7vh, 92px);
+  }
+
+  .range-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 22px;
+    padding: 7px 15px;
+    border: 1px solid var(--color-border-accent);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--color-accent-lilac);
+    font-size: var(--text-label);
+  }
+
+  .range-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(32px, 6vw, 88px);
+    font-weight: var(--font-weight-display);
+    line-height: 0.92;
+    letter-spacing: -0.042em;
+    text-transform: uppercase;
+  }
+
+  .range-title-line {
+    display: block;
+  }
+
+  /* Balances the wrap inside each masked line, so a line never breaks
+     mid-phrase on a narrow screen. */
+  .range-title .text-reveal-inner {
+    text-wrap: balance;
+  }
+
+  .range-title .text-gradient {
+    --gradient: var(--gradient-heading);
+  }
+
+  /* ---------- Body ---------- */
+
+  .range-body {
+    display: grid;
+    gap: clamp(44px, 6vw, 88px);
+    align-items: center;
+  }
+
+  /* ---------- The constant: one avatar, one still ring ---------- */
+
+  .range-avatar {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(360px, 76%);
+    margin-inline: auto;
+  }
+
+  /*
+    A very low radial so the artwork has somewhere to sit. Painted, not
+    blurred, and it never moves — the drop-shadow lesson in AGENT.md applies
+    to anything that carries a filter and animates, so nothing here does
+    either.
+  */
+  .range-avatar::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 150%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(168, 85, 247, 0.15) 0%,
+      rgba(147, 45, 255, 0.07) 42%,
+      transparent 68%
+    );
+    pointer-events: none;
+  }
+
+  /* The DNA's curve, held still — this section's one decorative element. */
+  .range-arc {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 122%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .range-avatar img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---------- The three states, on one spine ---------- */
+
+  .range-states {
+    --spine-gap: clamp(24px, 3vw, 40px);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(34px, 5vh, 60px);
+    margin: 0;
+    padding: 0 0 0 var(--spine-gap);
+    list-style: none;
+  }
+
+  /*
+    The spine. One continuous hairline through all three states, fading in
+    and out at its ends so it reads as a passage rather than a bar. Static:
+    it is structure, not motion.
+  */
+  .range-states::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--color-accent-purple) 14%,
+      var(--color-accent-magenta) 54%,
+      var(--color-accent-cyan) 88%,
+      transparent 100%
+    );
+    opacity: 0.6;
+  }
+
+  .range-state {
+    position: relative;
+  }
+
+  /* Node on the spine, one per state. */
+  .range-state::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--spine-gap) * -1 - 3px);
+    top: 7px;
+    width: 7px;
+    height: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 50%;
+    background: var(--color-void);
+  }
+
+  .range-state-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0;
+  }
+
+  .range-ordinal {
+    color: var(--color-accent-violet);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+  }
+
+  .range-label {
+    font-family: var(--font-display);
+    font-size: clamp(25px, 3.4vw, 50px);
+    font-weight: var(--font-weight-display);
+    line-height: 0.98;
+    letter-spacing: -0.032em;
+    text-transform: uppercase;
+  }
+
+  .range-state-line {
+    max-width: 34ch;
+    margin: clamp(8px, 1vw, 12px) 0 0;
+    color: var(--color-text-secondary);
+    font-size: clamp(14px, 1.05vw, 17px);
+    line-height: 1.6;
+  }
+
+  /* ---------- 02 Voice ---------- */
+
+  /*
+    A drawn shape, not a recording, and never a player — see VoiceWave.tsx.
+    It draws once when it comes into view and then holds; a waveform that
+    keeps moving would imply audio that does not exist.
+  */
+  .range-wave {
+    display: block;
+    width: min(100%, 400px);
+    height: auto;
+    margin-top: clamp(16px, 2vh, 24px);
+    overflow: visible;
+  }
+
+  /* ---------- 03 The knock ---------- */
+
+  .range-knocks {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: clamp(16px, 2vh, 22px) 0 0;
+  }
+
+  /*
+    The same mark S2 lands on its arrival frame. Restated here rather than
+    shared, because S2's own rule set carries its absolute placement inside
+    that frame; only the look is common.
+  */
+  .range-knock {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border: 1px solid var(--color-border-accent-strong);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.16);
+    color: var(--color-accent-lilac);
+    font-family: var(--font-display);
+    font-size: clamp(10px, 0.95vw, 13px);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* The second knock is the one that lands. */
+  .range-knock[data-mark="2"] {
+    border-color: rgba(236, 72, 153, 0.42);
+    background: rgba(236, 72, 153, 0.18);
+    color: #f9a8d4;
+  }
+
+  /* ---------- Composition ---------- */
+
+  @media (min-width: 901px) {
+    .range-body {
+      grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+      align-items: center;
+    }
+
+    .range-avatar {
+      width: 100%;
+      margin-inline: 0;
+    }
+
+    .range-states {
+      --spine-gap: clamp(28px, 3.4vw, 48px);
+    }
+  }
+
+  @media (max-width: 900px) {
+    /*
+      Mobile is a recomposition, not a squeeze: the avatar sits on top at a
+      size that still reads, and the spine runs straight down the three
+      states beneath it — the same order, the same argument, one column.
+    */
+    .range-head {
+      text-align: center;
+    }
+
+    .range-avatar {
+      width: min(300px, 72%);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .range-avatar {
+      width: min(260px, 78%);
+    }
+
+    .range-states {
+      --spine-gap: 22px;
+    }
+
+    .range-knock {
+      padding: 5px 11px;
+      letter-spacing: 0.16em;
+    }
+  }
+
+  /* ---------- Static composition ---------- */
+
+  /*
+    Without JS the entrance styles are what the server rendered, so they need
+    clearing or the section never appears. Reduced motion is handled in the
+    components themselves (short fades, no travel, the wave already drawn and
+    both knock marks already landed), so this block is only the no-JS
+    safeguard — the same approach S2 uses.
+  */
+  @media (scripting: none) {
+    .range-eyebrow,
+    .range-title .text-reveal-inner,
+    .range-avatar,
+    .range-state {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    .range-wave path {
+      opacity: 1 !important;
+      stroke-dasharray: none !important;
+      stroke-dashoffset: 0 !important;
+    }
+
+    .range-knock {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+}

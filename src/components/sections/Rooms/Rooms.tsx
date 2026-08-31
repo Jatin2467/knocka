@@ -18,8 +18,20 @@ import { RoomProgress } from "./RoomProgress";
 import { ROOM_FADE, RoomScene } from "./RoomScene";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-/** Point inside a world's band where the next one starts decoding. */
-const WARM_AT = 0.72;
+/**
+ * Point inside a world's band where the next one starts decoding.
+ *
+ * This single number is the whole two-decode window: the incoming world
+ * starts here, and the outgoing one freezes when the label swaps at 0.85.
+ * While both decode, the DNA canvas halves.
+ *
+ * Measured: at 0.72 the window was 13% of a band and the canvas held 30fps
+ * inside it. At 0.82 it is 3%. The cost is that the incoming world is a
+ * still frame for the first stretch of its fade — but only while it is
+ * under half opacity on a layer that is still scaling up, which is the same
+ * reasoning that lets the outgoing world freeze.
+ */
+const WARM_AT = 0.82;
 
 export function Rooms() {
   const reduceMotion = useReducedMotion();
@@ -83,7 +95,7 @@ export function Rooms() {
   const activeRoom = rooms[active] ?? rooms[0];
 
   return (
-    <section className="rooms" id="modes" aria-labelledby="rooms-title">
+    <section className="rooms" id="rooms" aria-labelledby="rooms-title">
       <div className="rooms-intro">
         <motion.p
           className="rooms-eyebrow"
@@ -111,8 +123,8 @@ export function Rooms() {
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.3 }}
         >
-          Knocka gives every conversation a place. Step in as your avatar — the
-          room sets the mood, you bring the presence.
+          Step in as your avatar — the room sets the mood, you bring the
+          presence.
         </motion.p>
       </div>
 
@@ -142,6 +154,7 @@ export function Rooms() {
                   total={rooms.length}
                   progress={progress}
                   isArmed={isNear}
+                  isEager={index === 0 || isOnScreen}
                   isPlaying={isOnScreen && (playMask & (1 << index)) !== 0}
                 />
               ))}
@@ -178,6 +191,37 @@ export function Rooms() {
             />
           </div>
         </div>
+      </div>
+
+      {/*
+        The landing statement. The runway used to end on silence, which left
+        the three worlds as scenery rather than as an argument. It sits after
+        the pinned stage on normal scroll, deliberately small and quiet — the
+        section has just had its peak and the next one needs the room.
+      */}
+      <div className="rooms-payoff">
+        <motion.span
+          className="rooms-payoff-rule"
+          aria-hidden="true"
+          initial={reduceMotion ? { opacity: 0 } : { scaleX: 0, opacity: 0 }}
+          whileInView={{ scaleX: 1, opacity: 1 }}
+          viewport={{ once: true, amount: 0.8 }}
+          transition={{ duration: reduceMotion ? 0.3 : 0.9, ease: EASE_OUT }}
+        />
+        <motion.p
+          className="rooms-payoff-line"
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{
+            duration: reduceMotion ? 0.3 : 0.9,
+            ease: EASE_OUT,
+            delay: reduceMotion ? 0 : 0.12,
+          }}
+        >
+          Same friends.{" "}
+          <span className="text-gradient">Different worlds.</span>
+        </motion.p>
       </div>
     </section>
   );

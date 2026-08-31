@@ -18,6 +18,12 @@ export interface RoomSceneProps {
   isPlaying: boolean;
   /** True once the section is close enough to be worth downloading. */
   isArmed: boolean;
+  /**
+   * True once this world is worth its own bytes in full. The first world is
+   * needed the moment the section is reached; the other two would otherwise
+   * put all three videos on the wire in the same instant.
+   */
+  isEager: boolean;
 }
 
 /**
@@ -35,6 +41,7 @@ export function RoomScene({
   progress,
   isPlaying,
   isArmed,
+  isEager,
 }: RoomSceneProps) {
   const reduceMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -109,7 +116,12 @@ export function RoomScene({
         // src is withheld until the section is near, so the page does not
         // pay for three videos on first load.
         src={isArmed ? room.video : undefined}
-        preload={isArmed ? "auto" : "none"}
+        // Staged rather than uniform: arming the section used to request all
+        // three videos in the same instant. The first world still fetches in
+        // full ahead of time; the other two hold at metadata until the
+        // visitor is actually in the section, which leaves them a whole band
+        // of scrolling to finish - far more than they need.
+        preload={isArmed ? (isEager ? "auto" : "metadata") : "none"}
         muted
         loop
         playsInline

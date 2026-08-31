@@ -11,7 +11,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { navLinks, siteConfig } from "@/lib/site-config";
+import { activeNavLinks, siteConfig } from "@/lib/site-config";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -56,7 +56,7 @@ export function SiteHeader() {
         </a>
 
         <nav className="site-nav" aria-label="Primary">
-          {navLinks.map((link) => (
+          {activeNavLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -112,7 +112,7 @@ export function SiteHeader() {
             transition={{ duration: reduceMotion ? 0 : 0.32, ease: EASE_OUT }}
           >
             <nav aria-label="Mobile">
-              {navLinks.map((link) => (
+              {activeNavLinks.map((link) => (
                 <a key={link.href} href={link.href} onClick={closeMenu}>
                   {link.label}
                 </a>

@@ -6,8 +6,6 @@ import { useRef } from "react";
 import { TextReveal } from "@/components/animation/TextReveal";
 import { Button } from "@/components/ui/Button";
 
-import { KnockPortal } from "./KnockPortal";
-
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export function Hero() {
@@ -52,8 +50,9 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.62 }}
           >
-            <strong>Don&apos;t text. Arrive.</strong> Knocka lets your avatar
-            deliver messages with emotion, voice, movement and presence.
+            <strong>Don&apos;t text. Arrive.</strong> Knocka is messaging where
+            your avatar shows up — with your face, your voice and your
+            reactions.
           </motion.p>
 
           <motion.div
@@ -72,7 +71,7 @@ export function Hero() {
           className="hero-portal-slot"
           style={reduceMotion ? undefined : { y: portalY }}
         >
-          <KnockPortal />
+          {/* <KnockPortal /> */}
         </motion.div>
 
         <motion.div
