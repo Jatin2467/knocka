@@ -76,6 +76,33 @@ export function SiteHeader() {
 
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
 
+  /**
+   * The CTAs are buttons, not links — a `<button>` inside an `<a>` is invalid
+   * markup — so they scroll themselves. `scrollIntoView` honours the
+   * `scroll-margin-top` in base.css, which is what keeps the target's heading
+   * clear of this bar. The nav links above stay real anchors: they are
+   * navigation and should behave like it with JS off.
+   *
+   * The motion preference is read at click time rather than through
+   * `useReducedMotion`, because someone can change the OS setting while the
+   * page is open.
+   */
+  const jumpTo = useCallback(
+    (hash: string) => {
+      const target = document.querySelector(hash);
+      if (!target) return;
+      closeMenu();
+      const reduce = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      target.scrollIntoView({
+        behavior: reduce ? "auto" : "smooth",
+        block: "start",
+      });
+    },
+    [closeMenu],
+  );
+
   useEffect(() => {
     if (!isMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -137,7 +164,12 @@ export function SiteHeader() {
                   transition={
                     reduceMotion
                       ? { duration: 0 }
-                      : { type: "spring", stiffness: 420, damping: 34, mass: 0.7 }
+                      : {
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                          mass: 0.7,
+                        }
                   }
                 />
               )}
@@ -147,15 +179,24 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center justify-end gap-2.5 upto-360:hidden">
-          {/* Drops out at 760px so the bar can keep the primary CTA. This has
-              to be a variant on the element: a stylesheet rule cannot outrank
-              the primitive's own display utility. */}
-          <Button variant="ghost" className="upto-760:hidden">
-            Glass Matrix
+          {/* Was "Glass Matrix", which named nothing on the page and went
+              nowhere. Drops out at 760px so the bar can keep the primary CTA.
+              This has to be a variant on the element: a stylesheet rule
+              cannot outrank the primitive's own display utility. */}
+          <Button
+            variant="ghost"
+            className="upto-760:hidden"
+            onClick={() => jumpTo("#get-knocka")}
+          >
+            Get the app
           </Button>
           {/* Tightens once the ghost CTA drops out at 760px, so the bar keeps
               its proportions instead of the last control looking oversized. */}
-          <Button variant="primary" className="upto-760:px-4 upto-760:py-[9px]">
+          <Button
+            variant="primary"
+            className="upto-760:px-4 upto-760:py-[9px]"
+            onClick={() => jumpTo("#newsletter")}
+          >
             Join Waitlist →
           </Button>
         </div>
@@ -198,10 +239,18 @@ export function SiteHeader() {
               ))}
             </nav>
             <div className="mt-2.5 grid gap-2 border-t border-t-border-faint pt-3.5 min-[761px]:hidden">
-              <Button variant="ghost" className="w-full" onClick={closeMenu}>
-                Glass Matrix
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => jumpTo("#get-knocka")}
+              >
+                Get the app
               </Button>
-              <Button variant="primary" className="w-full" onClick={closeMenu}>
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={() => jumpTo("#newsletter")}
+              >
                 Join Waitlist →
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { EmailSignup } from "@/components/ui/EmailSignup";
 
 import { PhoneStack } from "./PhoneStack";
 
@@ -10,12 +10,12 @@ import { PhoneStack } from "./PhoneStack";
  * stops it, which is what makes the section read as an end rather than
  * another beat.
  *
- * **No email field.** The strategy's do-not-build list is explicit — there is
- * no backend, no API route and no endpoint, and a form that silently swallows
- * an address is worse than no form. So this is the reference banner's own
- * shape: one line, one button, one honest availability note. The CTA repeats
- * the label the hero and the header already use, because the page should ask
- * for the same thing in the same words every time it asks.
+ * **The email field is a front-end shell and posts nowhere** — see
+ * `EmailSignup`. There is still no backend, no API route and no endpoint in
+ * this project, so it has to be wired to something real before launch or it
+ * will collect addresses that go straight in the bin. The CTA keeps the label
+ * the header already uses, because the page should ask for the same thing in
+ * the same words every time it asks.
  *
  * **Not a client component.** The four reveals are AOS, the type is utilities,
  * and the only interactive parts — the CTA and the phone fan — are client
@@ -76,13 +76,11 @@ export function Newsletter() {
             data-aos="knocka-rise"
             className="mt-[clamp(24px,2.2vw,36px)] flex flex-col gap-3.5 delay-[180ms]"
           >
-            <Button
-              variant="primary"
-              size="lg"
-              className="shadow-[0_18px_40px_-16px_rgba(12,4,32,0.85)] w-fit"
-            >
-              Join the Waitlist →
-            </Button>
+            <EmailSignup
+              label="Your email address"
+              buttonLabel="Join the Waitlist →"
+              className="max-w-[clamp(280px,34vw,470px)]"
+            />
             <p className="text-[11px] tracking-[0.16em] text-[rgba(255,255,255,0.5)] uppercase">
               Coming soon to iOS and Android
             </p>

@@ -1419,3 +1419,107 @@ Verified: hovering the headline moves all three screens by different
 amounts (-18/+27, +2/-36, +19/-31 px) and leaving the panel returns them
 exactly to rest; reduced motion shows all three at full opacity and ignores
 hover entirely; no horizontal overflow at 320/390/768/1024/1440/1920.
+
+---
+
+## Phase 9 — S3 rebuilt as a room of six
+
+S3 is the section headed **"Your face. Your voice. Your knock."** It
+shipped in Phase 2 on the *fallback path* because the repository held
+exactly one avatar in one pose, and the strategy recorded the upgrade for
+the moment more arrived. Six profile renders landed in
+`public/avatar-profile-img/`, which is that moment.
+
+**Files:** `Range.tsx`, `cast.ts` (new), `KnockMarks.tsx` (one prop),
+`range.css`. `VoiceWave.tsx` is reused untouched. Nothing outside S3.
+
+### The concept, and the one that was rejected first
+
+Patterns surveyed: kinetic type as an architectural element rather than a
+headline block; broken/organic grids where asymmetry carries the
+hierarchy; layered depth as the cheap way to make a flat composition feel
+inhabited; hover as revelation, one element waking while its neighbours
+recede. Ruled out on inspection: bento/card grids, cursor-followed
+magnetic fields (per-frame JS over a canvas that is already painting), and
+a second marquee wall — S5 Expression is already exactly that.
+
+**A first build — six people scattered as a scroll-driven constellation
+with a signal arc between two of them — was rejected on review.** It was
+quiet to the point of being hard to read: six roughly equal circles on
+black, with the argument spread across five small labels. What replaced it
+is louder and much more legible, and it came from a reference the client
+supplied: **a band of moving type cutting the composition on a tilt, with
+portrait plates standing on either side of it.**
+
+### What the composition is
+
+- **The band** carries the five steps — find your people, invite them in,
+  show how you feel, send your avatar, knock their phone — as one line
+  that never stops. They read as a sequence rather than as a list, and the
+  same words come round again every time the eye returns. It is full
+  bleed at 132vw and tilted -3.6deg, so it runs off both edges of the
+  window. The reference's flat yellow became the brand gradient with near
+  black type: same device, Knocka's palette.
+- **Two portrait plates** at the edges, tilted, with the person standing
+  out over the top edge. Measured: 52px and 25px of head above the plate.
+  This is only possible because the artwork is a cutout — the image is
+  pinned to the plate's bottom and drawn *wider than the plate*, so its
+  top escapes and the torso is cut off by the plate's own bottom edge,
+  which is where the source images end anyway.
+- **Four circles** in the corners, at four sizes.
+- **Six different coloured grounds.** Five of the images are cutouts with
+  real alpha, so the colour shows through everywhere the person is not.
+  `avatar5.jpg` is the exception — a JPEG on white — so it fills its
+  circle edge to edge and *its own white ground becomes its colour*, the
+  sixth of six. Nothing about the markup differs between them.
+
+### Two compositions, one set of numbers
+
+Every profile carries two spots in `cast.ts` — `wide` and `narrow` — and
+the stylesheet picks between them with one media query. That is what lets
+the narrow layout be a different arrangement (head on top, band across,
+the two plates side by side in the middle, circles in the corners around
+them) rather than the wide one squeezed, with no resize listener, no
+measurement and no second render path.
+
+**It switches at 760, not the 900 the rest of the page uses.** Measured at
+768: the wide composition still has room for both plates outside the
+centre column, while the narrow one had to stretch a 205vw stage across
+the width, which left the section airy and the people small.
+
+### Traps this section hits
+
+- **Framer owns `.knock-profile`'s transform**, so hover lives one level
+  down on `.knock-plate`. An inline transform from framer wins over any
+  `:hover` rule on the same element, every time.
+- **Centring is the CSS `translate` property, not a transform.** The
+  cascade applies `translate` before `transform`, so framer's entrance
+  composes with it and no `calc(-50% + ...)` is needed anywhere.
+- **The marquee's gap belongs on the items, never on the flex container.**
+  A container gap is counted once and not twice, and the -50% seam opens.
+  Verified: the two runs measure 1439.5px each, exactly equal.
+- `next/image` with `fill` writes inline positioning styles that a
+  stylesheet cannot override, so the plates use intrinsic `width`/`height`
+  and let CSS place the artwork.
+
+### Still the cheap section
+
+No pin, no scroll container, no `useScroll`, no scroll-linked value — S3
+is the pacing relief between two pinned sequences and stays that way.
+Every entrance is a one-shot `whileInView`; the band is a CSS marquee and
+hover is a CSS transition, including the "everyone else steps back" dim,
+which is a `:has()` rule and not React state.
+
+### Validation
+
+`lint`, `tsc --noEmit`, `build` all clean.
+
+- **Zero horizontal overflow** at 320/390/768/1024/1280/1440/1920 — the
+  132vw band bleeds under `overflow-x: clip` on `<main>`, the same
+  contract the hero and Rooms bleed under
+- **DNA canvas 60.3fps** parked on the section
+- All six profiles present and at opacity 1 at every width
+- Hover: the hovered plate lifts, the other five drop to 0.5 opacity
+- Reduced motion: all six visible, the band stopped with all five steps
+  still present and in order, both knock marks landed, all three headline
+  lines shown, no overflow

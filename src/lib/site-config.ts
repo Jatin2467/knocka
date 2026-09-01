@@ -21,21 +21,24 @@ export const siteConfig = {
 } as const;
 
 /**
- * The full intended navigation, in final order.
+ * The full intended navigation, in final order — page order, top to bottom.
  *
- * Labels flagged below are UNRESOLVED and must not be renamed without client
- * confirmation — see "Open client questions" in docs/LANDING_PAGE_STRATEGY.md.
- * Anchors are pre-wired to the sections the strategy assigns them.
+ * Every entry points at a section that is actually on the page, so every
+ * label in the bar goes somewhere. The hero is deliberately absent: the
+ * wordmark is already the way back to the top.
+ *
+ * Anchors rely on `scroll-margin-top` in base.css to clear the floating
+ * header; without it every jump lands with the section heading tucked
+ * behind the bar.
  */
 export const navLinks: readonly PrimaryNavLink[] = [
-  // Ready since Phase 1 built S2 at #arrival. The LABEL is still unresolved
-  // ("Flow & Motivi") and must not be renamed without client confirmation —
-  // the flag only tracks whether the target section exists.
-  { label: "Flow & Motivi", href: "#arrival", ready: true },
-  // Target section S3 lands in Phase 2.
-  { label: "Features", href: "#range", ready: false },
+  // S2, the flat-to-arrival sequence. It was labelled "Flow & Motivi", which
+  // was never resolved with the client and told a visitor nothing.
+  { label: "Why Knocka", href: "#arrival", ready: true },
+  { label: "How it works", href: "#how", ready: true },
   { label: "Rooms", href: "#rooms", ready: true },
-  // Target section S5 lands in Phase 4.
+  { label: "Expressions", href: "#expression", ready: true },
+  // Target section S5 is not built.
   { label: "Modes", href: "#modes", ready: false },
   // Retained pending client confirmation on whether the page has an FAQ.
   { label: "FAQ", href: "#faq", ready: false },

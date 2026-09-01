@@ -65,7 +65,11 @@ export function VoiceWave() {
         strokeLinejoin="round"
         // Holds the hairline weight however wide the SVG is scaled.
         vectorEffect="non-scaling-stroke"
-        initial={reduceMotion ? { opacity: 0, pathLength: 1 } : { opacity: 0, pathLength: 0 }}
+        initial={
+          reduceMotion
+            ? { opacity: 0, pathLength: 1 }
+            : { opacity: 0, pathLength: 0 }
+        }
         whileInView={{ opacity: 1, pathLength: 1 }}
         viewport={{ once: true, amount: 0.6 }}
         transition={{

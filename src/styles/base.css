@@ -13,6 +13,16 @@
     box-sizing: border-box;
   }
 
+  /*
+    Every anchored jump has to clear the floating header, which ends about
+    80px down. Without this the nav works but lands with the target
+    section’s own heading tucked behind the bar.
+  */
+  section[id],
+  footer[id] {
+    scroll-margin-top: clamp(92px, 12vh, 124px);
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;

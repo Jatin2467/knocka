@@ -1,20 +1,37 @@
 /* ============================================================
    RANGE (S3) — "YOUR FACE. YOUR VOICE. YOUR KNOCK."
 
-   The quiet section, and deliberately the cheapest one on the
-   page: no pin, no scroll-linked value, no video, no canvas, no
-   filter on anything. Every animation here is a one-shot reveal
-   that runs when the section comes into view and then stops.
+   A room of six, a band of moving type cutting across it on a
+   tilt, and the two knock marks landing underneath.
 
-   The composition is one avatar held still, and one hairline
-   spine running through three states beside it. The spine is
-   what stops these being three cards — it makes them one
-   argument — and it carries the brand gradient purple ->
-   magenta -> cyan on its way down, so the section reads as
-   Knocka without a single glow.
+   The people are unequal on purpose. Two stand on portrait
+   plates at the edges of the composition with their heads
+   breaking out over the top edge — only possible because the
+   artwork is a cutout with real alpha. The other four are
+   circles in the corners. Every one of them has a different
+   coloured ground, which is what turns six cutouts into six
+   profiles rather than six pictures.
 
-   Authored mobile-first; the two-column composition starts at
-   901px, matching the hero's breakpoint.
+   WHY THIS SECTION IS CSS AND NOT UTILITY CLASSES
+   It is a coordinate system. Every profile is placed from custom
+   properties it carries as data, the wide and the narrow
+   compositions are two sets of those same properties chosen by
+   one media query, and the band is a marquee. None of that is
+   expressible as utility classes without inventing a dozen
+   arbitrary-value strings per element. Type, colour and spacing
+   still come from the tokens.
+
+   WHAT MOVES, AND ON WHICH ELEMENT
+   Framer owns `.knock-profile`'s transform for the entrance, so
+   hover lives one level down on `.knock-plate` — an inline
+   transform from framer would win over any `:hover` rule on the
+   same element.
+
+   Nothing that moves carries a filter: the DNA canvas repaints
+   behind this section and a blur or a drop shadow on a moving
+   layer would re-rasterise every frame. Not pinned, and nothing
+   scroll-linked — this is the pacing relief between two pinned
+   sequences.
 ============================================================ */
 
 @layer components {
@@ -26,21 +43,40 @@
   .range-inner {
     width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
     margin-inline: auto;
-    padding-block: clamp(88px, 13vh, 168px);
+    padding-block: clamp(122px, 17vh, 196px) clamp(80px, 11vh, 150px);
+  }
+
+  /*
+    The coordinate space. Everything in the section is placed as a percentage
+    of this box, so one set of numbers holds from 320 to 1920 and the narrow
+    composition is a different set of the same numbers rather than a
+    different layout.
+  */
+  .knock-stage {
+    --card: clamp(140px, 16.5vw, 240px);
+    --bub: clamp(64px, 8.6vw, 126px);
+
+    position: relative;
+    height: clamp(620px, 58vw, 880px);
   }
 
   /* ---------- Head ---------- */
 
-  /* Left-aligned, where Rooms and S2 are centred. The page alternates. */
-  .range-head {
-    margin-bottom: clamp(44px, 7vh, 92px);
+  .knock-head {
+    position: absolute;
+    left: 50%;
+    top: 7%;
+    z-index: 1;
+    width: min(64%, 760px);
+    text-align: center;
+    translate: -50% 0;
   }
 
-  .range-eyebrow {
+  .knock-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin: 0 0 22px;
+    margin: 0 0 clamp(14px, 1.8vh, 22px);
     padding: 7px 15px;
     border: 1px solid var(--color-border-accent);
     border-radius: var(--radius-pill);
@@ -49,215 +85,135 @@
     font-size: var(--text-label);
   }
 
-  .range-title {
+  .knock-title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(32px, 6vw, 88px);
+    font-size: clamp(32px, 5.6vw, 96px);
     font-weight: var(--font-weight-display);
-    line-height: 0.92;
-    letter-spacing: -0.042em;
+    line-height: 0.9;
+    letter-spacing: -0.045em;
     text-transform: uppercase;
   }
 
-  .range-title-line {
+  .knock-title-line {
     display: block;
   }
 
-  /* Balances the wrap inside each masked line, so a line never breaks
-     mid-phrase on a narrow screen. */
-  .range-title .text-reveal-inner {
-    text-wrap: balance;
-  }
-
-  .range-title .text-gradient {
+  .knock-title .text-gradient {
     --gradient: var(--gradient-heading);
   }
 
-  /* ---------- Body ---------- */
+  /* ---------- The band ---------- */
 
-  .range-body {
-    display: grid;
-    gap: clamp(44px, 6vw, 88px);
+  /*
+    Full bleed and on a tilt, so it crosses the whole composition and runs
+    off both edges of the window. `overflow-x: clip` on <main> is what keeps
+    a 132vw element from ever reaching the page's scroll width — the same
+    contract the hero and Rooms bleed under.
+
+    It sits above the head and below the people: the type passes behind the
+    portraits, which is what puts the three layers in depth order.
+  */
+  .knock-band {
+    position: absolute;
+    left: 50%;
+    top: 48%;
+    z-index: 2;
+    display: flex;
     align-items: center;
-  }
-
-  /* ---------- The constant: one avatar, one still ring ---------- */
-
-  .range-avatar {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: min(360px, 76%);
-    margin-inline: auto;
-  }
-
-  /*
-    A very low radial so the artwork has somewhere to sit. Painted, not
-    blurred, and it never moves — the drop-shadow lesson in AGENT.md applies
-    to anything that carries a filter and animates, so nothing here does
-    either.
-  */
-  .range-avatar::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 150%;
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle,
-      rgba(168, 85, 247, 0.15) 0%,
-      rgba(147, 45, 255, 0.07) 42%,
-      transparent 68%
-    );
-    pointer-events: none;
-  }
-
-  /* The DNA's curve, held still — this section's one decorative element. */
-  .range-arc {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 122%;
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-
-  .range-avatar img {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: auto;
-  }
-
-  /* ---------- The three states, on one spine ---------- */
-
-  .range-states {
-    --spine-gap: clamp(24px, 3vw, 40px);
-
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(34px, 5vh, 60px);
-    margin: 0;
-    padding: 0 0 0 var(--spine-gap);
-    list-style: none;
-  }
-
-  /*
-    The spine. One continuous hairline through all three states, fading in
-    and out at its ends so it reads as a passage rather than a bar. Static:
-    it is structure, not motion.
-  */
-  .range-states::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 4px;
-    bottom: 4px;
-    width: 1px;
+    width: 132vw;
+    height: clamp(44px, 4.6vw, 68px);
+    overflow: hidden;
     background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      var(--color-accent-purple) 14%,
-      var(--color-accent-magenta) 54%,
-      var(--color-accent-cyan) 88%,
-      transparent 100%
+      90deg,
+      var(--color-accent-purple) 0%,
+      var(--color-accent-magenta) 46%,
+      var(--color-accent-cyan) 100%
     );
-    opacity: 0.6;
+    box-shadow: 0 18px 60px -30px rgba(168, 85, 247, 0.7);
+    translate: -50% -50%;
+    rotate: -3.6deg;
   }
 
-  .range-state {
-    position: relative;
-  }
-
-  /* Node on the spine, one per state. */
-  .range-state::before {
-    content: "";
-    position: absolute;
-    left: calc(var(--spine-gap) * -1 - 3px);
-    top: 7px;
-    width: 7px;
-    height: 7px;
-    border: 1px solid rgba(255, 255, 255, 0.32);
-    border-radius: 50%;
-    background: var(--color-void);
-  }
-
-  .range-state-head {
+  /*
+    Exactly two identical runs wide, travelling -50%: the loop is seamless
+    without measuring anything. The gap lives on each item and never on the
+    flex container — a container gap is counted once and not twice, and the
+    seam opens up at the wrap.
+  */
+  .knock-band-track {
     display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin: 0;
+    width: max-content;
+    animation: knock-band 34s linear infinite;
+    will-change: transform;
   }
 
-  .range-ordinal {
-    color: var(--color-accent-violet);
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
+  .knock-band-run {
+    display: flex;
   }
 
-  .range-label {
+  .knock-band-item {
+    display: inline-flex;
+    align-items: center;
+    color: #10041a;
     font-family: var(--font-display);
-    font-size: clamp(25px, 3.4vw, 50px);
+    font-size: clamp(13px, 1.45vw, 22px);
     font-weight: var(--font-weight-display);
-    line-height: 0.98;
-    letter-spacing: -0.032em;
+    letter-spacing: 0.01em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  .range-state-line {
-    max-width: 34ch;
-    margin: clamp(8px, 1vw, 12px) 0 0;
+  .knock-band-item i {
+    margin-inline: clamp(18px, 2.2vw, 40px);
+    font-style: normal;
+    opacity: 0.5;
+  }
+
+  @keyframes knock-band {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* ---------- Tail ---------- */
+
+  .knock-tail {
+    position: absolute;
+    left: 50%;
+    top: 60%;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: clamp(16px, 2.2vh, 26px);
+    width: min(52%, 560px);
+    text-align: center;
+    translate: -50% 0;
+  }
+
+  .knock-lead {
+    max-width: 40ch;
+    margin: 0;
     color: var(--color-text-secondary);
     font-size: clamp(14px, 1.05vw, 17px);
-    line-height: 1.6;
+    line-height: 1.62;
   }
 
-  /* ---------- 02 Voice ---------- */
-
-  /*
-    A drawn shape, not a recording, and never a player — see VoiceWave.tsx.
-    It draws once when it comes into view and then holds; a waveform that
-    keeps moving would imply audio that does not exist.
-  */
-  .range-wave {
-    display: block;
-    width: min(100%, 400px);
-    height: auto;
-    margin-top: clamp(16px, 2vh, 24px);
-    overflow: visible;
-  }
-
-  /* ---------- 03 The knock ---------- */
-
-  .range-knocks {
+  .knock-tail .range-knocks {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: clamp(16px, 2vh, 22px) 0 0;
+    gap: 10px;
+    margin: 0;
   }
 
-  /*
-    The same mark S2 lands on its arrival frame. Restated here rather than
-    shared, because S2's own rule set carries its absolute placement inside
-    that frame; only the look is common.
-  */
   .range-knock {
     display: inline-flex;
     align-items: center;
     padding: 6px 14px;
-    border: 1px solid var(--color-border-accent-strong);
+    border: 1px solid rgba(192, 132, 252, 0.55);
     border-radius: var(--radius-pill);
-    background: rgba(168, 85, 247, 0.16);
-    color: var(--color-accent-lilac);
+    background: rgba(168, 85, 247, 0.24);
+    color: #f3e8ff;
     font-family: var(--font-display);
     font-size: clamp(10px, 0.95vw, 13px);
     font-weight: var(--font-weight-medium);
@@ -273,68 +229,279 @@
     color: #f9a8d4;
   }
 
-  /* ---------- Composition ---------- */
+  /* ---------- A profile ---------- */
 
-  @media (min-width: 901px) {
-    .range-body {
-      grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
-      align-items: center;
-    }
-
-    .range-avatar {
-      width: 100%;
-      margin-inline: 0;
-    }
-
-    .range-states {
-      --spine-gap: clamp(28px, 3.4vw, 48px);
-    }
+  .knock-profile {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    z-index: 3;
+    translate: -50% -50%;
+    rotate: var(--rot);
   }
 
-  @media (max-width: 900px) {
-    /*
-      Mobile is a recomposition, not a squeeze: the avatar sits on top at a
-      size that still reads, and the spine runs straight down the three
-      states beneath it — the same order, the same argument, one column.
-    */
-    .range-head {
-      text-align: center;
+  .knock-profile[data-kind="card"] {
+    width: calc(var(--card) * var(--s));
+  }
+
+  .knock-profile[data-kind="bubble"] {
+    width: calc(var(--bub) * var(--s));
+  }
+
+  /*
+    The coloured ground. This is the whole point of the treatment: five of
+    the six images are cutouts, so the colour shows through everywhere the
+    person is not, and each of the six is different.
+  */
+  .knock-plate {
+    position: relative;
+    display: block;
+    width: 100%;
+    border: 1px solid var(--ring);
+    background: var(--tint);
+    transition:
+      transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.45s ease;
+  }
+
+  .knock-profile[data-kind="card"] .knock-plate {
+    aspect-ratio: 3 / 4;
+    border-radius: clamp(14px, 1.5vw, 22px);
+  }
+
+  .knock-profile[data-kind="bubble"] .knock-plate {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  /*
+    Cards: the artwork is NOT clipped. It is pinned to the bottom of the
+    plate and drawn wider than it, so the head clears the top edge and the
+    torso is cut off by the plate's own bottom — which is exactly where the
+    source images end anyway. --img-w is tuned per image; the two sources
+    have different aspect ratios and different amounts of air around the
+    subject, so one number cannot serve both.
+  */
+  .knock-profile[data-kind="card"] .knock-art {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: var(--img-w);
+    max-width: none;
+    height: auto;
+    translate: -50% 0;
+  }
+
+  /* Bubbles: the portrait fills the circle, so the one JPEG's own white
+     ground becomes its colour and no cutout is required. */
+  .knock-profile[data-kind="bubble"] .knock-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% var(--focus);
+  }
+
+  /* ---------- Name plates ---------- */
+
+  .knock-name {
+    position: absolute;
+    display: grid;
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  .knock-name b {
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: -0.01em;
+  }
+
+  .knock-name span {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.78em;
+    letter-spacing: 0.06em;
+  }
+
+  /* On a card the plate is big enough to carry its own caption. */
+  .knock-profile[data-kind="card"] .knock-name {
+    left: 8%;
+    right: 8%;
+    bottom: 7%;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius-pill);
+    background: rgba(8, 5, 14, 0.52);
+    font-size: clamp(11px, 1vw, 14px);
+    text-align: left;
+  }
+
+  /* A bubble is too small, so its caption sits underneath it. */
+  .knock-profile[data-kind="bubble"] .knock-name {
+    left: 50%;
+    top: calc(100% + 10px);
+    width: max-content;
+    max-width: 13ch;
+    font-size: clamp(10px, 0.85vw, 13px);
+    text-align: center;
+    translate: -50% 0;
+  }
+
+  /* ---------- Voice ---------- */
+
+  /*
+    A drawn shape, never a recording and never a player — see VoiceWave.tsx.
+    It is here because the headline promises a voice: this is one person's
+    voice note, not a feature panel.
+  */
+  .knock-voice {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 25%;
+    display: block;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius-pill);
+    background: rgba(8, 5, 14, 0.42);
+  }
+
+  .knock-voice .range-wave {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+  }
+
+  /* ---------- Hover: one steps forward, the room steps back ---------- */
+
+  .knock-profile:hover .knock-plate {
+    transform: translateY(-10px) scale(1.035);
+  }
+
+  /*
+    `:has()` is what makes this a CSS-only interaction — no hover state in
+    React, no re-render, nothing measured.
+  */
+  .knock-stage:has(.knock-profile:hover)
+    .knock-profile:not(:hover)
+    .knock-plate {
+    opacity: 0.5;
+  }
+
+  /* ---------- The narrow composition ---------- */
+
+  /*
+    A different arrangement of the same room, not the wide one squeezed: the
+    head takes the top, the band still cuts across, the two cards drop to the
+    middle side by side and the four circles take the corners around them.
+    Every number comes from the same data — see cast.ts.
+
+    It switches at 760, not at the 900 the rest of the page uses. Measured:
+    at 768 the wide composition still has room for both plates outside the
+    centre column, and the narrow one had to stretch a 205vw stage to fill
+    the width, which left the section airy and the people small.
+  */
+  @media (max-width: 760px) {
+    .knock-stage {
+      --card: clamp(118px, 30vw, 178px);
+      --bub: clamp(58px, 16vw, 96px);
+
+      height: clamp(780px, 205vw, 1000px);
     }
 
-    .range-avatar {
-      width: min(300px, 72%);
+    .knock-head {
+      top: 3%;
+      width: 94%;
+    }
+
+    .knock-title {
+      font-size: clamp(30px, 9vw, 58px);
+    }
+
+    .knock-band {
+      top: 42%;
+      width: 142vw;
+      rotate: -4.2deg;
+    }
+
+    .knock-tail {
+      top: 48%;
+      width: min(92%, 460px);
+    }
+
+    .knock-profile {
+      left: var(--nx);
+      top: var(--ny);
+      rotate: var(--nrot);
+    }
+
+    .knock-profile[data-kind="card"] {
+      width: calc(var(--card) * var(--ns));
+    }
+
+    .knock-profile[data-kind="bubble"] {
+      width: calc(var(--bub) * var(--ns));
+    }
+
+    /* A 120px plate cannot carry a caption and a waveform. The wave is the
+       one that goes: it is the decorative half of the pair. */
+    .knock-voice {
+      display: none;
+    }
+
+    .knock-profile[data-kind="card"] .knock-name {
+      left: 6%;
+      right: 6%;
+      bottom: 6%;
+      padding: 5px 10px;
     }
   }
 
   @media (max-width: 560px) {
-    .range-avatar {
-      width: min(260px, 78%);
-    }
-
-    .range-states {
-      --spine-gap: 22px;
-    }
-
-    .range-knock {
-      padding: 5px 11px;
-      letter-spacing: 0.16em;
+    /* The mood is the first thing to go: at this size the two lines under a
+       44px circle are wider than the circle itself. */
+    .knock-profile[data-kind="bubble"] .knock-name span,
+    .knock-profile[data-kind="card"] .knock-name span {
+      display: none;
     }
   }
 
   /* ---------- Static composition ---------- */
 
   /*
+    Reduced motion keeps the room and drops the movement: the band stops
+    (its words are still all there, and still in order), the entrances are
+    short fades, and nothing travels. Nobody disappears.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .knock-band-track {
+      animation: none;
+      will-change: auto;
+    }
+
+    .knock-plate {
+      transition: opacity 0.3s ease;
+    }
+
+    .knock-profile:hover .knock-plate {
+      transform: none;
+    }
+  }
+
+  /*
     Without JS the entrance styles are what the server rendered, so they need
-    clearing or the section never appears. Reduced motion is handled in the
-    components themselves (short fades, no travel, the wave already drawn and
-    both knock marks already landed), so this block is only the no-JS
-    safeguard — the same approach S2 uses.
+    clearing or the room never arrives. Same safeguard S2 and S4 use.
   */
   @media (scripting: none) {
-    .range-eyebrow,
-    .range-title .text-reveal-inner,
-    .range-avatar,
-    .range-state {
+    .knock-eyebrow,
+    .knock-title .text-reveal-inner,
+    .knock-lead,
+    .knock-profile {
       opacity: 1 !important;
       transform: none !important;
     }

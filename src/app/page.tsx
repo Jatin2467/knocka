@@ -2,8 +2,8 @@ import { DNAAnimation } from "@/components/animation/DNAAnimation";
 import { SiteHeader } from "@/components/navigation";
 import { Arrival } from "@/components/sections/Arrival";
 import { Expression } from "@/components/sections/Expression";
+import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Footer } from "@/components/sections/Footer";
-import { Hero } from "@/components/sections/Hero";
 import { Newsletter } from "@/components/sections/Newsletter";
 import { Range } from "@/components/sections/Range";
 import { Rooms } from "@/components/sections/Rooms";
@@ -16,9 +16,9 @@ export default function Home() {
     <main className="relative min-h-screen overflow-x-clip bg-void text-text-primary">
       <DNAAnimation />
       <SiteHeader />
-      <Hero />
-      <Arrival />
       <Range />
+      <Arrival />
+      <HowItWorks />
       <Rooms />
       <Expression />
       <Newsletter />

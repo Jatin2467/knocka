@@ -20,7 +20,16 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const;
  * rhythm is still a clock, not the scroll wheel, which is the part that
  * matters. Exactly two marks, always 0.34s apart, no loop.
  */
-export function KnockMarks() {
+export interface KnockMarksProps {
+  /**
+   * Seconds to wait before the first mark, on top of its beat. The marks
+   * land when the knock arrives, not when it was sent, so the caller passes
+   * the send time plus the travel time.
+   */
+  readonly offset?: number;
+}
+
+export function KnockMarks({ offset = 0 }: KnockMarksProps) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLParagraphElement>(null);
   const isInView = useInView(ref, { amount: 0.9 });
@@ -41,7 +50,7 @@ export function KnockMarks() {
           }
           transition={
             shown && !reduceMotion
-              ? { duration: 0.34, ease: EASE_OUT, delay: beat }
+              ? { duration: 0.34, ease: EASE_OUT, delay: offset + beat }
               : { duration: 0.2 }
           }
         >

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 
+import { EmailSignup } from "@/components/ui/EmailSignup";
 import { footerGroups, siteConfig, socialGroup } from "@/lib/site-config";
 
 import { StoreBadges } from "./StoreBadges";
@@ -38,12 +39,14 @@ const TOP_LINK =
  */
 export function Footer() {
   const scrollToTop = () => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
   };
 
   return (
-    <footer className="relative z-10 px-[var(--container-gutter)] pt-[clamp(40px,6vw,80px)] pb-[clamp(24px,3vw,40px)]">
+    <footer className="relative z-10 px-[var(--container-gutter)] pt-[clamp(40px,6vw,80px)]">
       {/* The panel keeps its stylesheet rule: it owns --footer-pad, which the
           wordmark cancels with a negative margin, and the cqw container the
           wordmark is sized against. See footer.css. */}
@@ -65,7 +68,26 @@ export function Footer() {
               {siteConfig.description}
             </p>
 
-            <div className="mt-[clamp(28px,3vw,38px)]">
+            {/* Field and button share one pill — see EmailSignup's `inline`
+                variant. It posts nowhere; wire it before launch. */}
+            <div className="mt-[clamp(24px,2.6vw,32px)] max-w-[360px]">
+              <span className="mb-3 block text-[10px] font-[500] tracking-[0.24em] text-[rgba(255,255,255,0.34)] uppercase">
+                Join the waitlist
+              </span>
+              <EmailSignup
+                variant="inline"
+                label="Your email address"
+                buttonLabel="Send →"
+              />
+            </div>
+
+            {/* The header's "Get the app" lands here, so it carries its own
+                scroll-margin — the global rule in base.css only covers
+                sections. */}
+            <div
+              id="get-knocka"
+              className="mt-[clamp(28px,3vw,38px)] scroll-mt-[clamp(92px,12vh,124px)]"
+            >
               <span className="mb-3.5 block text-[10px] font-[500] tracking-[0.24em] text-[rgba(255,255,255,0.34)] uppercase">
                 Get Knocka
               </span>
