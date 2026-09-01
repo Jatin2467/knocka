@@ -983,3 +983,175 @@ because they waited 1.2-2.2s after each scroll.
   invite banner's phone fan stayed at opacity 0 beside copy that was visible
 - 0 console errors or warnings in either motion mode; 8 `.aos-init` elements,
   so no duplicate initialisation
+
+---
+
+## Phase 6 — S2 rebuilt around the welcome video
+
+The client asked for three things: make the flat half bigger, change both
+headlines, and put the welcome video in the frame **with its knocking sound**.
+All three are in. Two of them turned up facts that contradict what this
+document previously assumed.
+
+### The video is not what the config said it was
+
+`site-config.ts` claimed the welcome video was 1440x1080, and the frame was
+authored at 4:3 on that basis. It is **1440x1440 — square**, 5.038s, with a
+real AAC audio track. The frame now takes its aspect ratio from
+`arrivalMedia.ratio` as an inline custom property, so the media and its
+container cannot disagree again. Verified square at all eight widths.
+
+### The video knocks six times, not two
+
+Decoding the audio track and taking an RMS envelope puts knock transients at
+**0.39, 0.77, 1.04, 1.30, 1.64 and 1.96 seconds**; the filmstrip confirms it
+— the avatar knocks six times and lowers its fist by ~2.3s.
+
+Every brief so far has said *exactly two knocks, never three, never
+repeated*. That rule was written to stop us **inventing** a knock rhythm. It
+cannot bind the client's own footage, which is what the product actually
+does. So: the video plays as supplied, and the page adds nothing to it. The
+**two marks now ride the video's own first two hits** rather than running an
+independent rhythm beside them — which is exactly what the old score comment
+instructed whoever dropped the video in.
+
+`KNOCK_BEATS` therefore comes from `arrivalMedia.knockBeats`, and
+`KNOCK_PULSE` is derived from it so the frame kick can never drift from the
+mark it belongs to. Measured: mark 1 at video t=0.442, mark 2 at t=0.822 —
+a 0.380s gap against a 0.38s target. The ~50ms lead-in is the reveal's own
+ease crossing 50% opacity; the marks *start* on the hit.
+
+**They are timed from `onPlaybackStart`, not from the scroll threshold.**
+The threshold requests playback; the video reports when it actually began.
+Timing the marks off the request would desync them the moment the video
+took a frame longer to start than expected.
+
+### Sound: what a browser will and will not do
+
+**Unmuted autoplay requires a real user gesture, and scrolling is not one.**
+This is not a Chrome quirk — Chrome, Safari and Firefox all refuse. A
+scroll-triggered `play()` on an unmuted element gets a rejected promise, or
+in some browsers plays muted anyway without telling you.
+
+`ArrivalMedia` therefore does three things in order, and all three are
+measured:
+
+1. try unmuted;
+2. if the promise rejects **or the element comes back muted anyway**, play
+   muted so the arrival still happens;
+3. surface one control, `Hear the knock`, so it can be asked for.
+
+| Case | Result |
+|---|---|
+| No gesture anywhere on the page | plays **muted**, control appears |
+| Control clicked | unmuted, volume 1, replays from 0 |
+| Visitor clicked **anything** earlier | autoplays **unmuted**, no control |
+
+That third row is the normal case in practice, and it is why the client's
+request is satisfied without a hack: activation is banked per document, so
+anyone who has touched the header, a nav link or the hero CTA gets sound.
+
+The control sits **top-right** of the frame. Bottom-left, where it started,
+ran straight into knock mark 2 at every width — the frame is only ~340px
+across. Its icon is an inline SVG; an earlier attempt drawing a speaker from
+a box plus a bordered `::after` rendered as a plain square.
+
+### Reduced motion does not autoplay a knocking video
+
+The static composition holds the first frame and waits. WCAG 2.2.2 is about
+moving content, and a five-second animation of someone hammering on a frame
+is moving content. That left those visitors with no way to see it at all, so
+`allowManualPlay` shows them the same control, which plays it with sound on
+a real click. Verified: paused at t=0 on arrival, playing unmuted after.
+
+### The flat half
+
+Runway **240vh -> 290vh** (260 tablet, 235 mobile), still inside the 300vh
+cap the strategy sets. The thread is eight messages, not five, and the score
+was rebalanced so the flat half owns roughly **two thirds** of the runway:
+the bubbles build to 0.30, the headline and `Seen 2h ago` hold together from
+0.33 to 0.60, and only then does the collapse start. The boredom has to be
+felt for long enough to be worth answering.
+
+Copy: *Text is flat and boring.* / *What if someone knocks on your phone?*
+with a new supporting line, *Send your avatar with your message*, on its own
+stage row — not inside the headline grid, whose cell is sized by the taller
+of its two lines and would resize mid-sequence.
+
+
+### Follow-up: the headline was being clipped
+
+Reported against a short browser window, and reproduced: at **1280x720 the
+headline sat at y=64 with the floating header's bottom edge at y=70**, so
+the first line was behind the header and the closer overflowed the stage by
+5px.
+
+**Cause: the stage centres content it can no longer fit.** `.arrival-stage`
+is a `100svh` grid with `align-content: center`; when its children total
+more than the height available, centring overflows the box equally in both
+directions and the top half goes under the header. Going from five messages
+to eight made the thread 436px tall, which was enough to tip it.
+
+The earlier width sweep missed this because it parked at the arrival beat
+(p=0.88), where the thread is collapsed. **Check the flat phase too — the
+thread and the frame share a grid cell, and the cell is sized by whichever
+is taller.** The sweep now samples p=0.42 and p=0.9 at every size.
+
+Four things give the budget back, and all four are viewport-height aware:
+
+| | Was | Now |
+|---|---|---|
+| stage padding-top | `clamp(96px, 13vh, 140px)` | `clamp(110px, 15vh, 160px)` |
+| stage row gap | `clamp(20px, 3.4vh, 46px)` | `clamp(16px, 2.6vh, 40px)` |
+| headline | `clamp(29px, 5.4vw, 76px)` | `clamp(29px, min(5.4vw, 8vh), 76px)` |
+| bubble padding / size / gap | fixed 10px / 16px / 9px | `svh`-based clamps |
+
+`min(5.4vw, 8vh)` on the headline is the one worth keeping in mind: a wide
+but short window would otherwise pick a size off width alone and need more
+vertical room than the stage has.
+
+Measured after, across 14 window sizes from 1920x1080 down to 320x720:
+headline clears the header by **53-151px** and the stage keeps **34-109px**
+of slack at the bottom, in both the flat and the arrival phase.
+
+### Follow-up: bigger frame, no knock labels
+
+The frame went from `min(392px, 100%, 38svh)` to `min(470px, 100%, 46svh)`
+(mobile `min(420px, 100%, 42svh)`) — 483px tall at 1920x1080 against 388px
+before.
+
+The two `Knock` labels are gone at the client's request. `KNOCK_BEATS` and
+`KNOCK_PULSE` stay: the frame kick and the edge flash still ride the video's
+first two real hits, so the page reacts to the knock without captioning it.
+Nothing adds a knock of its own, which is the part of the old rule that
+still matters. With the labels gone the `.arrival-knock` rules and the
+560px override went with them.
+
+**A frame-rate scare worth recording as a false alarm.** A scrub through the
+turn measured a median of 47fps with a 44 minimum, which would have been a
+real regression from the bigger layer. It did not reproduce: an ablation of
+the bloom, the spark, the video and the frame size all returned 60, and so
+did returning to the shipped config. Four fresh page loads x two scrubs each
+then measured **60fps every time, first pass and second**. The low readings
+came from a run taken immediately after killing a batch of stray Chrome
+processes. **Do not tune against a single scrub sample on a busy machine.**
+
+### Validation
+
+`tsc` clean, `eslint` clean, production build clean.
+
+- Sequence walked at 13 stops: bubbles 0->8, flat line holds 0.36-0.54,
+  collapse, scrim lifts, spark, frame opens, video plays, marks, sub, closer
+- 14 window sizes 1920x1080 to 320x720, flat phase AND arrival phase: **no
+  whole composition inside the viewport, sound control never overlapping
+  knock mark 2
+- **0** knock labels in the DOM; the two impulses still ride the video's
+  first two real hits
+- Replay: scrolling out rewinds to t=0 and disarms the impulse; scrolling
+  back in replays identically
+- DNA canvas 500 particles, **60fps** at p=0.2/0.45/0.7/0.85/1 and while
+  scrubbing the turn with the video playing
+- Reduced motion: no pin, no plate, all copy visible, both marks shown,
+  video paused at t=0 with a working manual control
+- Everything outside S2: 4224 elements compared by path, differences are the
+  vertical shift from the taller section plus 11 sub-pixel roundings

@@ -27,8 +27,10 @@
     z-index: 10;
   }
 
+  /* The flat half owns about two thirds of this. 290vh is deliberate and
+     is the ceiling: the strategy caps any one section at 300vh. */
   .arrival-runway {
-    height: 240vh;
+    height: 290vh;
   }
 
   .arrival-stage {
@@ -39,8 +41,15 @@
     display: grid;
     align-content: center;
     justify-items: center;
-    gap: clamp(20px, 3.4vh, 46px);
-    padding: clamp(96px, 13vh, 140px) var(--container-gutter)
+    /*
+      The top padding is the clearance under the floating header, which ends
+      about 80px down. It was clamp(96px, 13vh, 140px), and on a short window
+      the stage content overflowed its own height — align-content: center then
+      pushed the headline UP, behind the header. Measured at 1280x720: title
+      top 64px against a header bottom of 70px.
+    */
+    gap: clamp(16px, 2.6vh, 40px);
+    padding: clamp(110px, 15vh, 160px) var(--container-gutter)
       clamp(32px, 6vh, 60px);
   }
 
@@ -90,7 +99,12 @@
     width: min(var(--stage-max), 100%);
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(29px, 5.4vw, 76px);
+    /*
+      min(vw, vh) so a wide-but-short window cannot pick a size that needs
+      more vertical room than the stage has. The question wraps to two lines
+      at every desktop width, so this is worth 20-30px of budget.
+    */
+    font-size: clamp(29px, min(5.4vw, 8vh), 76px);
     font-weight: var(--font-weight-display);
     line-height: 0.94;
     letter-spacing: -0.042em;
@@ -105,6 +119,23 @@
 
   .arrival-title .text-gradient {
     --gradient: var(--gradient-heading);
+  }
+
+  /*
+    The supporting line, on its own stage row rather than inside the headline
+    grid: the headline cell is sized by the taller of its two lines, and
+    adding a third element to it would make the cell resize mid-sequence.
+  */
+  .arrival-sub {
+    position: relative;
+    z-index: 1;
+    max-width: 34ch;
+    margin: 0;
+    color: var(--color-accent-lilac);
+    font-size: clamp(14px, 1.15vw, 18px);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.03em;
+    text-align: center;
   }
 
   /* ---------- Core: thread and arrival share one cell ---------- */
@@ -136,10 +167,16 @@
     will-change: transform;
   }
 
+  /*
+    Sized against the viewport height, not fixed. Eight messages at a fixed
+    9px/10px/16px are 436px tall, which is what pushed the headline off the
+    top of a short window. On a tall screen these all sit at their maximum
+    and nothing has changed.
+  */
   .arrival-thread-list {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: clamp(5px, 1svh, 9px);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -151,9 +188,9 @@
   */
   .arrival-bubble {
     max-width: 76%;
-    padding: 10px 14px;
+    padding: clamp(7px, 1.1svh, 10px) 14px;
     border-radius: 16px;
-    font-size: clamp(13px, 1.05vw, 16px);
+    font-size: clamp(12px, min(1.05vw, 1.6svh), 16px);
     line-height: 1.45;
     will-change: transform, opacity;
   }
@@ -173,7 +210,7 @@
   }
 
   .arrival-thread-meta {
-    margin: 13px 2px 0;
+    margin: clamp(8px, 1.4svh, 13px) 2px 0;
     color: rgba(255, 255, 255, 0.2);
     font-size: 11px;
     letter-spacing: 0.16em;
@@ -185,10 +222,14 @@
 
   .arrival-stack {
     position: relative;
-    /* 4:3 is the welcome video's native framing (1440x1080), so approving
-       it later changes the media element and nothing else. */
-    --arrival-ratio: 4 / 3;
-    width: min(460px, 100%, calc(38svh * 4 / 3));
+    /*
+      1:1. The welcome video was assumed to be 1440x1080; it is actually
+      1440x1440. The ratio now comes from the media config via an inline
+      custom property, so the frame and its contents cannot disagree again.
+      This value is the fallback for the still-image path.
+    */
+    --arrival-ratio: 1 / 1;
+    width: min(470px, 100%, 46svh);
   }
 
   .arrival-bloom {
@@ -279,42 +320,48 @@
     pointer-events: none;
   }
 
-  /* ---------- Beat 06: exactly two knocks ---------- */
-
   /*
-    Two marks, landing 0.34s apart, inside the frame's own corners so they
-    can never push the composition past the viewport at any width.
+    Shown only when the browser refused to autoplay with sound, which happens
+    whenever the visitor has not yet clicked anything: unmuted autoplay needs
+    a real user gesture and scrolling is not one.
+
+    Top-RIGHT. The two knock marks own top-left and bottom-right, and the
+    bottom-left placement this started on ran straight into mark 2 at every
+    frame width — the frame is only ~340px across.
   */
-  .arrival-knock {
+  .arrival-sound {
     position: absolute;
-    z-index: 3;
+    z-index: 4;
+    top: 7%;
+    right: 6%;
     display: inline-flex;
     align-items: center;
-    padding: 6px 13px;
-    border: 1px solid var(--color-border-accent-strong);
+    gap: 8px;
+    padding: 7px 14px;
+    border: 1px solid var(--color-border-glass);
     border-radius: var(--radius-pill);
-    background: rgba(168, 85, 247, 0.16);
-    color: var(--color-accent-lilac);
-    font-family: var(--font-display);
-    font-size: clamp(10px, 0.95vw, 13px);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: 0.22em;
+    background: rgba(9, 7, 16, 0.72);
+    color: var(--color-text-primary);
+    font-size: clamp(10px, 0.9vw, 12px);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    white-space: nowrap;
+    transition:
+      border-color 0.25s ease,
+      background-color 0.25s ease;
   }
 
-  .arrival-knock[data-mark="1"] {
-    top: 7%;
-    left: 6%;
+  .arrival-sound:hover,
+  .arrival-sound:focus-visible {
+    border-color: var(--color-border-accent-strong);
+    background: rgba(24, 12, 40, 0.86);
   }
 
-  /* The second knock is the one that lands. */
-  .arrival-knock[data-mark="2"] {
-    right: 6%;
-    bottom: 7%;
-    border-color: rgba(236, 72, 153, 0.42);
-    background: rgba(236, 72, 153, 0.18);
-    color: #f9a8d4;
+  /* Inline SVG, sized to the label. An earlier attempt drew this from a box
+     plus a bordered ::after and rendered as a square, not a speaker. */
+  .arrival-sound svg {
+    width: 13px;
+    height: 13px;
+    flex: none;
   }
 
   /* ---------- Beat 07: the breath before S3 ---------- */
@@ -338,17 +385,17 @@
   */
   @media (max-width: 900px) {
     .arrival-runway {
-      height: 210vh;
+      height: 260vh;
     }
 
     .arrival-stack {
-      width: min(420px, 100%, calc(34svh * 4 / 3));
+      width: min(420px, 100%, 42svh);
     }
   }
 
   @media (max-width: 560px) {
     .arrival-runway {
-      height: 190vh;
+      height: 235vh;
     }
 
     .arrival-thread {
@@ -357,11 +404,6 @@
 
     .arrival-bubble {
       max-width: 82%;
-    }
-
-    .arrival-knock {
-      padding: 5px 10px;
-      letter-spacing: 0.16em;
     }
   }
 

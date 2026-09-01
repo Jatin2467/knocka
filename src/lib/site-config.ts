@@ -148,45 +148,53 @@ export const arrivalThread: readonly ThreadMessage[] = [
   { id: "m2", from: "them", text: "hey" },
   { id: "m3", from: "you", text: "what's up?" },
   { id: "m4", from: "them", text: "nothing much" },
-  { id: "m5", from: "you", text: "lol" },
+  { id: "m5", from: "you", text: "you free later?" },
+  { id: "m6", from: "them", text: "idk" },
+  { id: "m7", from: "you", text: "lol" },
+  { id: "m8", from: "them", text: "k" },
 ];
 
+interface ArrivalMediaBase {
+  readonly src: string;
+  readonly alt: string;
+  /** Frame aspect ratio, as a CSS `aspect-ratio` value. */
+  readonly ratio: string;
+}
+
 export type ArrivalMediaSource =
-  | {
+  | (ArrivalMediaBase & {
       readonly kind: "image";
-      readonly src: string;
-      readonly alt: string;
       readonly width: number;
       readonly height: number;
-    }
-  | {
+    })
+  | (ArrivalMediaBase & {
       readonly kind: "video";
-      readonly src: string;
-      readonly alt: string;
       readonly poster?: string;
-    };
+      /** Seconds from playback start to each of the two knock marks. */
+      readonly knockBeats: readonly [number, number];
+    });
 
 /**
  * What arrives in S2's frame.
  *
- * OPEN CLIENT QUESTION 1: whether "no welcome video" meant "not in the hero"
- * or "nowhere". While that is unresolved this stays on the avatar artwork —
- * the honest asset we already have — and nothing is invented.
+ * RESOLVED: the client asked for the welcome video here, so open question 1
+ * ("no welcome video" meaning not-in-the-hero, or nowhere) is answered — it
+ * belongs in S2's frame, with sound.
  *
- * The frame is authored at the welcome video's own 4:3 (1440x1080), so if the
- * video is approved the entire swap is this object:
+ * `ratio` is not decoration. The frame was authored at 4:3 on the assumption
+ * that the welcome video was 1440x1080; it is actually **1440x1440**, square.
+ * The frame follows this value, so the media and its container can never
+ * disagree again.
  *
- *   kind: "video", src: "/videos/Knocka-Welcome-Dark-optimized.mp4",
- *   alt: "...",
- *
- * No markup, no CSS and no timing changes. `ArrivalMedia` already handles the
- * video path (lazy `src`, muted, playsInline, no loop, played only on the
- * arrival beat).
+ * `knockBeats` are measured, not chosen. The audio track has six knock
+ * transients at 0.39, 0.77, 1.04, 1.30, 1.64 and 1.96 seconds; the two marks
+ * ride the first two, so the typography lands on real hits instead of running
+ * a rhythm of its own beside them.
  */
 export const arrivalMedia: ArrivalMediaSource = {
-  kind: "image",
-  src: "/branding/knocka-avatar-logo.png",
-  alt: "A Knocka avatar arriving through a message frame",
-  width: 615,
-  height: 512,
+  kind: "video",
+  src: "/videos/Knocka-Welcome-Dark-optimized.mp4",
+  alt: "A Knocka avatar knocking to arrive through a message frame",
+  ratio: "1 / 1",
+  knockBeats: [0.39, 0.77],
 };

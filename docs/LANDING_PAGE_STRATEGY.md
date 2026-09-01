@@ -203,10 +203,16 @@ built around a media *slot*, not an asset. The frame is authored at the welcome
 video's own 4:3 (1440x1080) and `ArrivalMedia` already implements the video path
 (lazy `src`, muted, `playsInline`, no loop, played only on the arrival beat), so
 approving it is a one-object change to `arrivalMedia` in `site-config.ts` — no
-markup, CSS or timing changes. Until then the frame holds
-`knocka-avatar-logo.png`, which is the honest asset we already have. Verified:
-the welcome video is never requested. **If it is approved, retime `KNOCK_BEATS`
-to the video's own knock frames rather than adding a second knock animation.**
+markup, CSS or timing changes.
+
+**RESOLVED (Phase 6).** The client asked for the welcome video here, with
+sound. It is in, and `KNOCK_BEATS` was retimed to its own knock frames exactly
+as this paragraph instructed. Two corrections to what was assumed above: the
+video is **1440x1440, not 1440x1080**, so the frame's ratio now comes from the
+media config rather than being hard-coded; and its audio carries **six** knock
+transients, so the two marks ride the first two rather than counting for it.
+Unmuted autoplay needs a user gesture, so playback degrades to muted with a
+"Hear the knock" control — see LANDING_PAGE_AGENT.md, Phase 6.
 
 **DESKTOP:** Pinned stage, centred and symmetrical — deliberately not the hero's
 asymmetric composition, so the collapse reads. Thread and frame share one grid
@@ -692,10 +698,9 @@ Question 6 ("Flow & Motivi") is now visible in the header, because the section
 it points at exists. Question 7's sibling — whether "Features" is renamed —
 now also gates whether S3 appears in the navigation at all.
 
-1. **Is the welcome video banned everywhere, or only in the hero?** No longer
-   blocking — Phase 1 shipped S2 on the avatar artwork behind a typed media
-   slot, and the video is never requested. Approving it is a one-object change
-   in `site-config.ts`. Still the single highest-value answer for the section.
+1. ~~**Is the welcome video banned everywhere, or only in the hero?**~~
+   **ANSWERED (Phase 6):** it belongs in S2's frame, with sound. The hero is
+   still without it. Nothing here is open any more.
 2. **Waitlist or download?** The page currently says both. Blocks Phase 5 and
    the footer fix.
 3. **Is there an email endpoint for the waitlist?** No backend exists today.
@@ -717,6 +722,11 @@ now also gates whether S3 appears in the navigation at all.
 - Testimonials, user counts, logos, or any other invented social proof
 - Pricing
 - FAQ (unless the client insists)
+- More than two knocks **of our own invention**. UPDATED: the client's
+  welcome video knocks six times and is now S2's arrival media. The rule was
+  written to stop us fabricating a rhythm, and it still does — the page adds
+  no knock of its own, and the two marks ride the video's first two real
+  hits. Do not add a third mark.
 - A phone mockup — meaning an invented device frame around invented UI.
   SUPERSEDED IN PART: the invite banner shows three real app screens supplied
   by the client (public/news-latter-phone-img). They are product screenshots,
@@ -790,7 +800,8 @@ normal-scroll beats.
 statically with the pin dropped. Section 240vh desktop / 190vh mobile
 (budget <= 260vh). Hero, Rooms, header and footer verified unchanged.
 
-**STILL OPEN:** client question 1 (the welcome video). The slot is ready.
+**CLOSED (Phase 6):** client question 1 answered — the welcome video is now
+S2's arrival media, with sound.
 
 ---
 

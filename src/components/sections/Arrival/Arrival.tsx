@@ -8,20 +8,26 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+
+import { arrivalMedia } from "@/lib/site-config";
 
 import { ArrivalMedia } from "./ArrivalMedia";
 import { ConversationThread } from "./ConversationThread";
-import { KNOCK_BEATS, KNOCK_PULSE, SCORE } from "./score";
-
-const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+import { KNOCK_PULSE, SCORE } from "./score";
 
 /**
  * S2 — THE FLAT -> THE ARRIVAL.
  *
- * The page's comprehension moment: an ordinary thread goes quiet, collapses
- * into a point, the plate covering the DNA field lifts, and the avatar opens
- * out of that same point and knocks twice.
+ * The page's comprehension moment: an ordinary thread builds, goes quiet,
+ * sits there being boring for a long stretch of scrolling, collapses into a
+ * point, the plate covering the DNA field lifts, and the avatar opens out of
+ * that same point and knocks.
+ *
+ * The flat half owns about two thirds of the runway. That imbalance is the
+ * design: the question the section asks only lands if the boredom was felt
+ * first. See score.ts, which holds every beat.
  *
  * Three things carry the story, and they are one property each:
  *
@@ -40,10 +46,17 @@ export function Arrival() {
   const runwayRef = useRef<HTMLDivElement>(null);
 
   const [hasArrived, setHasArrived] = useState(false);
+  /**
+    * Set by the media itself when the arrival actually begins, not by the
+    * scroll threshold that requested it. The frame kick and the edge flash
+    * are timed to the video's own first two knocks, so they have to start
+    * counting from its first frame, not from the scroll position that asked
+    * for it.
+    */
   const [hasKnocked, setHasKnocked] = useState(false);
 
-  // Generous margin so a video source, if one is ever approved, has
-  // downloaded before the arrival beat needs it.
+  // Generous margin so the video has downloaded before the arrival beat
+  // needs it — it is 1.5MB and the knock has to land on time.
   const isNear = useInView(runwayRef, { margin: "60% 0px 60% 0px" });
   const isOnScreen = useInView(runwayRef, { amount: 0.01 });
 
@@ -76,16 +89,18 @@ export function Arrival() {
   const progress = useTransform(scrollYProgress, (value) => value);
 
   useMotionValueEvent(scrollYProgress, "change", (value) => {
-    // Hysteresis on both flags: the arm and disarm thresholds are far apart,
-    // so a scroll resting on a boundary cannot retrigger every frame. Both
-    // are functional updates with an equality guard, so this listener runs on
-    // every scroll frame but only re-renders on an actual state change.
+    // Hysteresis: the arm and disarm thresholds are far apart, so a scroll
+    // resting on a boundary cannot retrigger every frame. Functional update
+    // with an equality guard, so this listener runs on every scroll frame but
+    // only re-renders on an actual state change.
     const arrived = value >= (hasArrived ? SCORE.arriveReset : SCORE.arriveAt);
-    const knocked = value >= (hasKnocked ? SCORE.knockReset : SCORE.knockAt);
-
     setHasArrived((prev) => (prev === arrived ? prev : arrived));
-    setHasKnocked((prev) => (prev === knocked ? prev : knocked));
+    // Scrolling back out of the arrival rewinds the media, so the impulse
+    // has to disarm with it or the replay would start already-kicked.
+    if (!arrived) setHasKnocked((prev) => (prev ? false : prev));
   });
+
+  const handlePlaybackStart = useCallback(() => setHasKnocked(true), []);
 
   const scrimTrack = useTransform(progress, SCORE.scrim, [1, 0]);
   const scrim = useTransform(
@@ -98,6 +113,9 @@ export function Arrival() {
 
   const arriveOpacity = useTransform(progress, SCORE.arriveLine, [0, 1]);
   const arriveY = useTransform(progress, SCORE.arriveLine, [22, 0]);
+
+  const subOpacity = useTransform(progress, SCORE.arriveSub, [0, 1]);
+  const subY = useTransform(progress, SCORE.arriveSub, [14, 0]);
 
   const sparkOpacity = useTransform(progress, SCORE.spark, [0, 1, 0]);
   const sparkScale = useTransform(progress, SCORE.spark, [0.2, 1, 2.1]);
@@ -112,8 +130,6 @@ export function Arrival() {
   const closerOpacity = useTransform(progress, SCORE.closer, [0, 1]);
   const closerY = useTransform(progress, SCORE.closer, [16, 0]);
 
-  // The knock reveals the marks; with motion off they are simply there.
-  const knockShown = isStatic || hasKnocked;
   const knockPulse = hasKnocked && !isStatic;
   const pulseTransition = knockPulse
     ? { duration: KNOCK_PULSE.duration, times: KNOCK_PULSE.times }
@@ -142,7 +158,7 @@ export function Arrival() {
               className="arrival-title-line"
               style={isStatic ? undefined : { opacity: flatOpacity, y: flatY }}
             >
-              Text is flat.
+              Text is flat and boring.
             </motion.span>
             <motion.span
               className="arrival-title-line"
@@ -150,14 +166,32 @@ export function Arrival() {
                 isStatic ? undefined : { opacity: arriveOpacity, y: arriveY }
               }
             >
-              <span className="text-gradient">Someone just showed up.</span>
+              <span className="text-gradient">
+                What if someone knocks on your phone?
+              </span>
             </motion.span>
           </h2>
+
+          {/* The answer to the question above, in one line. Its own row so
+              the headline cell never has to resize to hold it. */}
+          <motion.p
+            className="arrival-sub"
+            style={isStatic ? undefined : { opacity: subOpacity, y: subY }}
+          >
+            Send your avatar with your message.
+          </motion.p>
 
           <div className="arrival-core">
             <ConversationThread progress={progress} isStatic={isStatic} />
 
-            <div className="arrival-stack">
+            {/* The frame follows the media's real aspect ratio rather than
+                a hard-coded one, so swapping the asset cannot letterbox it. */}
+            <div
+              className="arrival-stack"
+              style={
+                { "--arrival-ratio": arrivalMedia.ratio } as CSSProperties
+              }
+            >
               {/* Painted gradients, never a blurred layer: both of these
                   scale, and a filter on a scaling element re-rasterises
                   every frame. The gradient is the blur. */}
@@ -203,6 +237,8 @@ export function Arrival() {
                   <ArrivalMedia
                     isArmed={isNear}
                     isPlaying={isOnScreen && hasArrived}
+                    allowManualPlay={isStatic}
+                    onPlaybackStart={handlePlaybackStart}
                   />
 
                   {/* Static geometry, opacity only: the edge light for each
@@ -216,31 +252,6 @@ export function Arrival() {
                     transition={pulseTransition}
                   />
 
-                  {/*
-                    Exactly two. Scroll arms the sequence, KNOCK_BEATS
-                    performs it — so the rhythm is the same every time, no
-                    matter how fast the visitor scrolls.
-                  */}
-                  {KNOCK_BEATS.map((beat, index) => (
-                    <motion.span
-                      key={beat}
-                      className="arrival-knock"
-                      data-mark={index + 1}
-                      initial={false}
-                      animate={
-                        knockShown
-                          ? { opacity: 1, scale: 1, y: 0 }
-                          : { opacity: 0, scale: 0.72, y: 10 }
-                      }
-                      transition={
-                        knockShown && !isStatic
-                          ? { duration: 0.34, ease: EASE_OUT, delay: beat }
-                          : { duration: 0.2 }
-                      }
-                    >
-                      Knock
-                    </motion.span>
-                  ))}
                 </motion.div>
               </motion.div>
             </div>
