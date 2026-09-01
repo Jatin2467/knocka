@@ -130,5 +130,13 @@ export function DNAAnimation() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="dna-canvas" aria-hidden="true" />;
+  // Sized in viewport units on purpose: base.css deliberately excludes canvas
+  // from the img/video max-width rule so the scrollbar gutter cannot shrink it.
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed top-0 left-0 z-0 h-screen w-screen"
+      aria-hidden="true"
+    />
+  );
 }

@@ -80,8 +80,13 @@
 
 /*
   Gradients, glows and shadows are not Tailwind theme namespaces,
-  so they live as plain custom properties. Use them with
-  var(--gradient-brand) or the .glow-* / .glass utilities.
+  so they live as plain custom properties rather than in @theme.
+  Reach them with an arbitrary value - bg-[image:var(--gradient-brand)],
+  shadow-[var(--shadow-media)] - or from a component stylesheet.
+
+  Everything in @theme above DOES generate utilities, so prefer those:
+  bg-void, text-text-secondary, border-border-glass, rounded-panel,
+  text-label, font-display and so on all exist without any extra setup.
 */
 :root {
   --gradient-brand: linear-gradient(
@@ -122,5 +127,5 @@
   --selection-bg: #963cff;
 
   /* Retired: the hero + footer now give the DNA canvas its scroll
-     range, so .knocka-page no longer needs a placeholder height. */
+     range, so <main> no longer needs a placeholder height. */
 }

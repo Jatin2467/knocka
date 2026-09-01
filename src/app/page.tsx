@@ -3,18 +3,23 @@ import { SiteHeader } from "@/components/navigation";
 import { Arrival } from "@/components/sections/Arrival";
 import { Footer } from "@/components/sections/Footer";
 import { Hero } from "@/components/sections/Hero";
+import { Newsletter } from "@/components/sections/Newsletter";
 import { Range } from "@/components/sections/Range";
 import { Rooms } from "@/components/sections/Rooms";
 
 export default function Home() {
+  // overflow-x is `clip`, not `hidden`: clip contains the hero and rooms bleed
+  // without creating a scroll container, so the sticky stages in S2 and S4 keep
+  // working. Do not swap it for overflow-hidden.
   return (
-    <main className="knocka-page">
+    <main className="relative min-h-screen overflow-x-clip bg-void text-text-primary">
       <DNAAnimation />
       <SiteHeader />
       <Hero />
       <Arrival />
       <Range />
       <Rooms />
+      <Newsletter />
       <Footer />
     </main>
   );

@@ -1,9 +1,20 @@
 /* ============================================================
-   SITE FOOTER
+   SITE FOOTER — the two rules Tailwind should not own
 
-   Built on the device shared by the reference layouts: an
-   oversized wordmark cropped by the panel edge, acting as the
-   floor of the site.
+   The grid, the link columns, the meta row, the back-to-top
+   control and every breakpoint moved onto the elements in
+   Footer.tsx during the Tailwind cleanup. Two rules stayed:
+
+   1. The panel, because it DECLARES --footer-pad. The wordmark
+      cancels that padding with a negative margin to go
+      full-bleed, so the value has to live somewhere both can
+      reach. It is also the cqw container the wordmark is sized
+      against, and it carries a two-layer background.
+
+   2. The wordmark, which is background-clip: text over two
+      stacked gradients whose stops are placed against measured
+      ink extents. Nothing about it is expressible as utilities
+      without becoming unreadable.
 
    The panel is translucent but deliberately carries NO
    backdrop-filter. The DNA canvas repaints behind it every
@@ -16,13 +27,6 @@
 ============================================================ */
 
 @layer components {
-  .site-footer {
-    position: relative;
-    z-index: 10;
-    padding: clamp(40px, 6vw, 80px) var(--container-gutter)
-      clamp(24px, 3vw, 40px);
-  }
-
   .site-footer-panel {
     position: relative;
     overflow: hidden;
@@ -45,204 +49,6 @@
       ),
       rgba(9, 7, 14, 0.78);
     box-shadow: var(--hairline-top);
-  }
-
-  /* ---------- Top block ---------- */
-
-  .site-footer-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.45fr);
-    gap: clamp(36px, 5vw, 72px);
-  }
-
-  .site-footer-logo {
-    width: auto;
-    height: 34px;
-  }
-
-  .site-footer-tagline {
-    max-width: 34ch;
-    margin: 22px 0 0;
-    color: var(--color-text-secondary);
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  /* ---------- App download ---------- */
-
-  .site-footer-app {
-    margin-top: clamp(28px, 3vw, 38px);
-  }
-
-  .site-footer-app-label {
-    display: block;
-    margin-bottom: 14px;
-    color: rgba(255, 255, 255, 0.34);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-  }
-
-  .store-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .store-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 11px 20px 11px 16px;
-    border: 1px solid var(--color-border-glass);
-    border-radius: var(--radius-control);
-    background: var(--color-glass-strong);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    transition:
-      border-color 0.25s ease,
-      background-color 0.25s ease,
-      box-shadow 0.25s ease;
-  }
-
-  .store-badge:hover,
-  .store-badge:focus-visible {
-    border-color: var(--color-border-accent-strong);
-    background: rgba(168, 85, 247, 0.12);
-    box-shadow: 0 0 30px -14px var(--color-accent-purple);
-  }
-
-  .store-badge-glyph {
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    color: var(--color-text-primary);
-  }
-
-  .store-badge-glyph svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .store-badge-text {
-    display: grid;
-    gap: 1px;
-    text-align: left;
-  }
-
-  .store-badge-eyebrow {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-  }
-
-  .store-badge-name {
-    font-family: var(--font-display);
-    font-size: 15px;
-    font-weight: var(--font-weight-medium);
-    line-height: 1.15;
-  }
-
-  /* ---------- Link columns ---------- */
-
-  .site-footer-links {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(18px, 2.4vw, 32px);
-  }
-
-  .site-footer-group-title {
-    margin: 0 0 18px;
-    color: var(--color-text-primary);
-    font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: var(--font-weight-medium);
-    letter-spacing: 0.02em;
-  }
-
-  .site-footer-links ul {
-    display: grid;
-    gap: 11px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .site-footer-links a {
-    display: inline-block;
-    color: var(--color-text-secondary);
-    font-size: 14px;
-    text-decoration: none;
-    transition: color 0.22s ease;
-  }
-
-  /* Nudge on hover so the column feels responsive without motion code. */
-  .site-footer-links a span {
-    display: inline-block;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .site-footer-links a:hover,
-  .site-footer-links a:focus-visible {
-    color: var(--color-text-primary);
-  }
-
-  .site-footer-links a:hover span,
-  .site-footer-links a:focus-visible span {
-    transform: translateX(4px);
-  }
-
-  /* ---------- Meta row ---------- */
-
-  .site-footer-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px 28px;
-    margin-top: clamp(36px, 4.5vw, 60px);
-    padding-top: 22px;
-    border-top: 1px solid var(--color-border-faint);
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 13px;
-  }
-
-  .site-footer-meta p {
-    margin: 0;
-  }
-
-  .site-footer-top-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-pill);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 13px;
-    transition:
-      color 0.22s ease,
-      border-color 0.22s ease,
-      background-color 0.22s ease;
-  }
-
-  .site-footer-top-link:hover,
-  .site-footer-top-link:focus-visible {
-    border-color: var(--color-border-accent);
-    background: rgba(168, 85, 247, 0.1);
-    color: var(--color-text-primary);
-  }
-
-  .site-footer-top-arrow {
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .site-footer-top-link:hover .site-footer-top-arrow,
-  .site-footer-top-link:focus-visible .site-footer-top-arrow {
-    transform: translateY(-3px);
   }
 
   /* ---------- Oversized wordmark ---------- */
@@ -314,35 +120,5 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-  }
-
-  /* ---------- Responsive ---------- */
-
-  @media (max-width: 900px) {
-    .site-footer-grid {
-      grid-template-columns: minmax(0, 1fr);
-      gap: clamp(32px, 6vw, 48px);
-    }
-  }
-
-  @media (max-width: 560px) {
-    .site-footer-links {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 28px 20px;
-    }
-
-    .site-footer-top-link {
-      align-self: stretch;
-      justify-content: center;
-    }
-
-    .store-badge {
-      flex: 1 1 100%;
-    }
-
-    .site-footer-meta {
-      flex-direction: column;
-      align-items: flex-start;
-    }
   }
 }

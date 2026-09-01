@@ -713,3 +713,273 @@ both identical to their recorded baselines.
 - `src/components/sections/Rooms/RoomScene.tsx` — staged `preload`
 - `src/styles/rooms.css` — runway heights, intro padding, payoff
 - `src/components/sections/Hero/Hero.tsx` — one orphaned import, see above
+
+---
+
+## Tailwind Migration
+
+A migration, not a rewrite. The rule applied throughout: **Tailwind where it
+removes a layer of indirection, CSS where CSS is the clearer technical
+answer.** Anything whose conversion risked changing a rendered pixel stayed
+in CSS.
+
+### How it was verified
+
+Every step was checked against a computed-style fingerprint, not by eye: all
+~240 elements on the page, ~96 computed properties each plus `::before` and
+`::after`, captured at **8 widths under reduced motion** (deterministic
+layout) **and 10 scroll anchors under normal motion** (the pinned
+compositions reduced motion un-stacks). Roughly 280,000 comparisons per run.
+
+**Establish the noise floor first.** Two consecutive captures with no code
+change diffed to zero, which is what makes any later difference trustworthy.
+The harness lives in the session scratchpad as `tw-capture.mjs` /
+`tw-diff.mjs`; rebuild it the same way if this is ever repeated.
+
+**Result: zero geometry differences** (no rect x/y/w/h change anywhere, at
+any width, at any scroll position) and zero differences in colour, spacing,
+type, background, shadow, opacity, z-index, display or overflow.
+
+### What moved to Tailwind
+
+| Was | Now | Outcome |
+|---|---|---|
+| `page-shell.css` | utilities on `page.tsx` / `DNAAnimation.tsx` | **file deleted** |
+| `buttons.css` | `Button.tsx` | **file deleted** |
+| `.store-badge*` + app label (10 rules) | `StoreBadges.tsx`, `Footer.tsx` | removed from `footer.css` |
+| `.room-progress*` (7 rules) | `RoomProgress.tsx` | removed from `rooms.css` |
+| `.site-header-secondary`, `.site-mobile-actions .btn`, `.site-header-actions .btn-primary` | variants on the buttons | removed from `site-header.css` |
+| `.container`, `.page-inline`, `.glass`, `.glass-control`, `.glass-blur`, `.glow` | nothing — all six were dead | removed from `utilities.css` |
+
+Those six were a second vocabulary for values `@theme` already generates
+utilities for (`bg-glass`, `border-border-subtle`, ...), and none were
+referenced by any component. Keeping both is how the two drift apart.
+
+One addition, in `globals.css`:
+
+```css
+@custom-variant interact (&:hover, &:focus-visible);
+```
+
+The stylesheets kept repeating `.x:hover, .x:focus-visible` pairs. One
+variant means a pointer style and its keyboard equivalent cannot drift apart.
+
+### Three traps this migration hit — read before doing more
+
+**1. A components-layer rule can no longer beat a migrated component.**
+This is the one that bites silently. `.site-header-secondary { display: none }`
+hid the ghost CTA below 760px. The moment `.btn`'s `display: inline-flex`
+became a *utility*, the stylesheet rule lost — utilities outrank
+`@layer components` — and the button reappeared at every width. **Whenever a
+primitive moves to utilities, every stylesheet rule that overrides it must
+move too**, as a variant on the element (`max-[760px]:hidden`).
+
+**2. Font-size tokens carry their paired line-height; the old rules did not.**
+`--text-body` has `--text-body--line-height: 1.6`, so `text-body` sets both.
+The `.btn-lg` rule it replaced set `font-size` alone, leaving the line box at
+`normal`. The large CTA silently grew **49px -> 54px**. Fixed with
+`leading-[normal]`. Check the line-height any time a `text-*` token utility
+replaces a bare `font-size`.
+
+**3. Utility order is not className order.** `.btn-lg` beat `.btn-primary` on
+padding purely because it was written later in the file. Two padding
+utilities in one string are settled by the order Tailwind emits them, which
+is not the order they are written. `Button.tsx` therefore resolves padding to
+exactly one value per size/variant instead of layering two.
+
+Also worth knowing: `font-medium` resolves to `--font-weight-medium`, which
+is **600** here, not 500. A rule authored at a literal `500` needs `font-[500]`.
+
+### Two accepted residues, both proven non-visual
+
+The fingerprint still reports these, and they are the only differences left:
+
+- **`border-style: none` -> `solid` on the primary buttons.** `border-width` is
+  `0px` in both (confirmed in the fingerprint), so nothing paints. Tailwind's
+  preflight already zeroes borders, so a `border-none` on the base would only
+  have started a fight with the ghost variant's real border.
+- **Transition lists serialize shorter.** `transition-property` and
+  `transition-duration` *values* are identical; only the repetition differs
+  (`ease, ease, ease, ease` vs `ease`). CSS repeats these lists to match
+  `transition-property`, so behaviour is identical. Matching the serialization
+  would need a full arbitrary `transition` shorthand and worse code.
+
+### What deliberately stayed CSS
+
+Roughly 18% of all declarations are `clamp()` scales, gradients, container
+queries, `svh` maths, `background-clip`, filters or `will-change`, and most
+of the rest live behind pseudo-elements, attribute selectors, custom
+breakpoints or reduced-motion blocks. Converting those buys nothing and
+costs readability, so **none of it moved**:
+
+- **`base.css` untouched.** It is the page's stabilization against Tailwind
+  preflight — including the `line-height: normal` reset that once resized
+  every element. Do not "tidy" it.
+- **`sections.css` untouched.** Preserved future-section design.
+- **`tokens.css` values untouched.** `@theme` is the source of truth and is
+  what makes `bg-void` / `rounded-control` / `text-label` work at all.
+- **All animation choreography** — S2's score and plate, S3's waveform and
+  reveals, Rooms' depth stack, the DNA canvas, every keyframe, mask,
+  `transform-origin` and reduced-motion block.
+- **`.text-gradient` and `.text-reveal`** — the `background-clip` pair and the
+  overflow mask, both with override hooks that utilities cannot express.
+- **Every `clamp()` type ramp and the oversized footer wordmark**, whose
+  `cqw` container-query sizing and layered gradients would become unreadable
+  as arbitrary values.
+
+No Framer Motion logic was touched: `useScroll`, `useTransform`, `useInView`,
+the motion values and `KNOCK_BEATS` are all unchanged.
+
+### Validation
+
+`tsc` clean, `eslint` clean, production build clean. No dependency changes.
+
+- Fingerprint: **0 geometry differences**, 8 widths x 10 scroll anchors
+- No horizontal overflow at 320/375/390/768/1024/1280/1440/1920
+- DNA: 500 particles, unchanged drift and scroll reaction, **60fps** at every
+  sampled point and while scrubbing
+- S2: walk identical at all 11 stops; two knocks, 331-382ms apart, replayable
+- S3: identical at all 8 widths; waveform drawn; exactly two marks; rhythm
+  330-333ms and independent of scroll speed
+- S4: walk identical at 7 stops, one decoder outside the crossfade, all
+  videos `readyState` 4, captions and glow tracking, payoff intact; section
+  274-298vh
+- Hover and focus-visible driven with real input on the migrated badges:
+  border, background and shadow match the removed rules exactly
+- Reduced motion unchanged across S2, S3 and Rooms
+
+---
+
+## Phase 5 — Tailwind cleanup + AOS
+
+Tailwind is now the primary styling system. The line drawn, and the one to
+keep drawing: **a stylesheet earns its place by carrying scroll
+choreography, a mask, pseudo-element geometry or a measured performance
+decision. Everything else is a utility on the element.**
+
+### What converted
+
+| Was | Now | Outcome |
+|---|---|---|
+| `site-header.css` (29 rules) | `SiteHeader.tsx` | **1 rule left** — the menu icon |
+| `footer.css` (25 rules) | `Footer.tsx` | **2 rules left** — panel, wordmark |
+| `newsletter.css` (22 rules) | `Newsletter.tsx` | **13 rules left** — panel, arcs, phone fan |
+
+`hero.css`, `arrival.css`, `range.css` and `rooms.css` were not touched.
+They are the four scroll-choreographed sections; converting them buys
+percentage and costs the thing that makes them readable.
+
+Long class strings live in module-scope constants (`BAR_BASE`, `NAV_LINK`,
+`LINK`, `TOP_LINK`), the pattern Button.tsx already used.
+
+### The breakpoint bug — read this before converting another media query
+
+**`max-[1024px]:` is not `@media (max-width: 1024px)`.** Tailwind v4 compiles
+it to `@media not (min-width: 1024px)`, which is `width < 1024px` and
+therefore EXCLUDES exactly 1024px. Every rule being replaced was written
+`max-width`, which includes it. At exactly 1024px the desktop nav reappeared
+beside the burger.
+
+The fingerprint caught it because 1024 is one of the sampled widths. The
+same off-by-one was already shipping from the previous phase on
+`max-[760px]` (the ghost CTA) and `max-[560px]` (the store badges), where it
+had never been caught because those exact widths were never sampled.
+
+Fixed at the source with exact-equivalent variants in `globals.css`:
+
+```css
+@custom-variant upto-1024 { @media (max-width: 1024px) { @slot; } }
+```
+
+`upto-1024`, `upto-900`, `upto-760`, `upto-560`, `upto-360`. Use these for
+any max-width conversion. `min-[Npx]:` needs no equivalent — min-width is
+inclusive in both syntaxes. Verified at the boundary: nav hidden at 1023
+**and** 1024, visible at 1025; ghost CTA hidden at 760, visible at 761.
+
+### Three more conversion traps
+
+- **`transition-transform` is wider than `transition: transform`.** It covers
+  `transform, translate, scale, rotate`. Use `transition-[transform]` to
+  match a rule that transitioned the one property.
+- **`border-t` plus a bare border colour colours all four sides.** The
+  shorthand `border-top: 1px solid X` sets only the top. Use
+  `border-t-<colour>`. Invisible while the other three widths are 0 — until
+  someone adds a border.
+- **A settled `translate3d(0,0,0)` pins a compositor layer for the life of
+  the page.** AOS's own animations end there. Ending on `transform: none`
+  drops the layer; CSS interpolates to `none` as the identity matrix, so the
+  movement is unchanged. Eight static text blocks were being promoted, and it
+  also made Chrome report `margin-inline: auto` as `0px` on an unrelated
+  centred panel whose box had not moved.
+
+### AOS
+
+Added as `aos@2.3.4` + `@types/aos`, initialised once from `layout.tsx` via
+`components/animation/Aos`. Used on eight simple reveals: the four blocks of
+the invite banner and the four of the footer.
+
+**Its stylesheet is never imported.** AOS's JavaScript only toggles
+`aos-init` / `aos-animate`; every animation it ships is plain CSS. This page
+needs two reveals, both in `styles/aos.css`, so importing 26KB to use a few
+percent of it would be dead weight. Stagger uses Tailwind `delay-*`.
+
+**The hidden state is gated on `.aos-init`, not on `[data-aos]`.** That class
+only exists once AOS has run, so no-JavaScript and reduced-motion both land
+on visible — the opposite of the usual data-attribute reveal, where a script
+failure leaves the page blank. Four `NOSCRIPT_REVEAL` selectors in
+`layout.tsx` were deleted because of it.
+
+It paid for itself in one place: the invite banner has no Framer left and is
+no longer a client component at all. The footer dropped framer-motion too,
+reading `prefers-reduced-motion` directly at click time for back-to-top.
+
+**Where AOS must not go, and why that is measured rather than stylistic.**
+AOS fires on an absolute document offset — `offsetTop + offset` against
+`scrollY + innerHeight` — captured once at init. For the last elements on a
+page that sum can exceed the furthest the page can scroll, and the reveal
+then never runs at all. Measured at 390x844 with the global 90px offset, the
+footer wordmark's trigger sat **27px** inside the maximum scroll position:
+the site's signature element was one layout change away from never
+appearing. `data-aos-offset="-160"` on the bottom two reveals takes the
+margins to 277px and 370px.
+
+IntersectionObserver — what Framer's `whileInView` uses — cannot fail this
+way. So: **AOS for simple reveals with room above the page floor; Framer for
+anything scroll-linked, pinned, percentage-based or near the bottom.** Check
+the arithmetic before adding a ninth.
+
+AOS also throttles its scroll handler at 99ms, so its reveals lag a fast
+flick by up to ~200px where Framer's do not. Acceptable on a footer; not on
+anything the eye is tracking.
+
+### Correction to the measuring note above
+
+**`window.scrollTo({ behavior: "auto" })` does not force an instant jump.**
+In the options dictionary `auto` means use the element's computed
+`scroll-behavior`, and this page sets `scroll-behavior: smooth`. Scripted
+scrolling that must land immediately has to pass `behavior: "instant"`.
+Measured: `scrollTo({ top: 3000, behavior: "auto" })` read `scrollY = 0`
+immediately after and `1803` 300ms later. Earlier passes were unaffected only
+because they waited 1.2-2.2s after each scroll.
+
+### Validation
+
+`tsc` clean, `eslint` clean, production build clean.
+
+- Fingerprint vs pre-phase baseline: **0 geometry differences**, 8 widths x
+  10 scroll anchors, ~280,000 comparisons. 20 elements differ, all accounted
+  for: the 8 AOS reveals, the header bar and the back-to-top button
+- Remaining property differences are all proven non-visual: Tailwind's four
+  transparent zero-size `box-shadow` placeholders; transition-list
+  serialization with identical values; `background-position` on an element
+  whose `background-image` is `none`; and `opacity` on the AOS blocks, which
+  reduced motion now leaves visible instead of waiting for a scroll trigger
+- DNA canvas 500 particles, **60fps** at hero, range, rooms, invite, footer
+- Header dense state, nav pill, mobile menu, both hover nudges driven with
+  real input and matching the removed rules
+- No horizontal overflow at 320/375/390/768/1024/1280/1440/1920
+- Reduced motion: every `data-aos` attribute removed, no `.aos-init`, and
+  **0** unexpectedly hidden elements. Fixed one real bug found here — the
+  invite banner's phone fan stayed at opacity 0 beside copy that was visible
+- 0 console errors or warnings in either motion mode; 8 `.aos-init` elements,
+  so no duplicate initialisation

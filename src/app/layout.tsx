@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 
+import { Aos } from "@/components/animation/Aos";
 import { siteConfig } from "@/lib/site-config";
 
 import "./globals.css";
@@ -30,11 +31,11 @@ const NOSCRIPT_REVEAL = [
   ".hero-scroll-cue",
   ".knock-portal-art",
   ".site-header",
-  ".site-footer-brand",
-  ".site-footer-links",
-  ".site-footer-meta",
-  ".site-footer-wordmark span",
 ].join(",") + "{opacity:1!important;transform:none!important}";
+
+// The footer and the invite banner are not listed: their reveals are AOS,
+// whose hidden state is gated on the .aos-init class AOS itself adds. No
+// script, no class, no hidden content — see styles/aos.css.
 
 export const metadata: Metadata = {
   title: siteConfig.title,
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <style>{NOSCRIPT_REVEAL}</style>
         </noscript>
         {children}
+        <Aos />
       </body>
     </html>
   );

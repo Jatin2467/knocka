@@ -107,7 +107,7 @@
     width: min(112%, 500px);
     /* Deliberate crop: the portal runs off the right edge so the
        phone layout stays a composition, not a stack of blocks.
-       .knocka-page clips the bleed (overflow-x: clip). */
+       <main> clips the bleed with overflow-x-clip. */
     margin-right: clamp(-140px, -17vw, -40px);
   }
 

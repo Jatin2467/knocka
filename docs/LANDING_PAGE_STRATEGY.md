@@ -578,6 +578,16 @@ elements, never on a large video layer.
 | E — Video transition | S4 |
 | F — Section transition | None. Sections meet on the DNA field; no crossfades between them |
 
+**Category C is implemented by two libraries, and the split is not arbitrary.**
+AOS drives the simple reveals in the invite banner and the footer; Framer
+Motion drives everything else. AOS triggers on an absolute document offset
+captured at init, so for elements near the page floor that trigger can land
+beyond the furthest the page can scroll and the reveal never runs — measured
+at 27px of margin on the footer wordmark before it was corrected. Anything
+scroll-linked, pinned, percentage-based or close to the bottom stays on
+Framer's IntersectionObserver, which cannot fail that way. See
+LANDING_PAGE_AGENT.md, Phase 5.
+
 **Lenis is installed but unused. Recommendation: do not add it now.** Both
 scroll-linked sections read `useScroll` progress, and introducing smooth scroll
 after S2 is built means re-validating S2, S4, the header densify and the DNA
@@ -707,13 +717,19 @@ now also gates whether S3 appears in the navigation at all.
 - Testimonials, user counts, logos, or any other invented social proof
 - Pricing
 - FAQ (unless the client insists)
-- A phone mockup
+- A phone mockup — meaning an invented device frame around invented UI.
+  SUPERSEDED IN PART: the invite banner shows three real app screens supplied
+  by the client (public/news-latter-phone-img). They are product screenshots,
+  not a mockup, so they are evidence rather than decoration. The rule still
+  stands for anything we would have to draw ourselves.
 - A video gallery, or any fourth video
 - A second canvas or particle system
 - Horizontal scroll anywhere
 - More than two pinned sections
 - Any section over 300vh
-- A non-functional email input
+- A non-functional email input — still holds. The invite banner ships one
+  headline, one CTA and an availability note, with no field, because there is
+  still no endpoint.
 - "Download now" while the product is pre-launch
 - Section-to-section crossfades — the DNA field is the transition
 - Repetitive fade-up on every element

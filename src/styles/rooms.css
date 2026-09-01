@@ -218,57 +218,12 @@
     font-size: clamp(13px, 1vw, 15px);
   }
 
-  .room-progress {
-    display: flex;
-    align-items: center;
-    flex: none;
-    /* Sits on the room name, which is the dominant line of the caption. */
-    padding-top: 10px;
-  }
-
-  .room-progress-step {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .room-progress-track {
-    display: block;
-    position: relative;
-    width: clamp(26px, 4.5vw, 62px);
-    height: 1px;
-    margin-left: 14px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.14);
-  }
-
-  .room-progress-fill {
-    position: absolute;
-    inset: 0;
-    transform-origin: left center;
-    background: linear-gradient(
-      90deg,
-      var(--color-accent-purple),
-      var(--color-accent-cyan)
-    );
-  }
-
-  .room-progress-ordinal {
-    color: rgba(255, 255, 255, 0.26);
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    transition: color 0.5s ease;
-  }
-
-  .room-progress-ordinal[data-state="past"] {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  .room-progress-ordinal[data-state="active"] {
-    color: var(--color-text-primary);
-  }
+  /*
+    The progress indicator moved wholly into RoomProgress.tsx during the
+    Tailwind migration - including its three data-state colours, which are now
+    data-* variants next to the attribute that drives them. Nothing about it
+    is left here, so there is no split ownership to keep in step.
+  */
 
   /* ---------- Closing payoff ---------- */
 

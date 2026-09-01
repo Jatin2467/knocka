@@ -1,57 +1,35 @@
 /* ============================================================
    REUSABLE UTILITIES
 
-   Small, composable pieces of the existing visual language.
-   Kept in @layer components so Tailwind utilities still win.
+   What is left here is what Tailwind cannot express cleanly.
+
+   Six hand-rolled utilities were removed in the Tailwind
+   migration - .container, .page-inline, .glass, .glass-control,
+   .glass-blur and .glow. All six were unreferenced by any
+   component, and every one of them is now a plain composition of
+   utilities generated from the @theme tokens:
+
+     .glass          -> bg-glass border border-border-subtle
+     .glass-control  -> bg-glass-strong border border-border-glass
+     .glass-blur     -> backdrop-blur-[var(--blur-glass)]
+     .page-inline    -> px-[var(--spacing-inline)]
+     .container      -> mx-auto w-[min(var(--container-max),calc(100%-2*var(--container-gutter)))]
+
+   Keeping a second vocabulary for the same thing is how the two
+   drift apart, so the tokens stay and the wrappers went.
 ============================================================ */
 
 @layer components {
-  /* Centered content column used by every full-width section. */
-  .container {
-    width: min(var(--container-max), calc(100% - 2 * var(--container-gutter)));
-    margin-inline: auto;
-  }
-
-  /* Horizontal page padding for edge-to-edge bands. */
-  .page-inline {
-    padding-inline: var(--spacing-inline);
-  }
-
-  /* Frosted panel: translucent fill + hairline border. */
-  .glass {
-    background: var(--color-glass);
-    border: 1px solid var(--color-border-subtle);
-  }
-
-  .glass-control {
-    background: var(--color-glass-strong);
-    border: 1px solid var(--color-border-glass);
-  }
-
-  .glass-blur {
-    backdrop-filter: blur(var(--blur-glass));
-  }
-
-  /* Gradient-filled text. Set --gradient on the element to change it. */
+  /*
+    Stays in CSS: background-clip on text needs the -webkit- pair to survive,
+    and the --gradient custom property is the override hook every section uses
+    to swap the fill without restating the clip machinery.
+  */
   .text-gradient {
     background-image: var(--gradient, var(--gradient-brand));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-  }
-
-  /* Soft atmospheric glow, painted behind the element. */
-  .glow::before {
-    content: "";
-    position: absolute;
-    top: 25%;
-    left: 15%;
-    width: 70%;
-    height: 50%;
-    background: var(--glow-color, var(--glow-purple));
-    filter: blur(var(--blur-glow));
-    opacity: var(--glow-opacity, 0.08);
-    pointer-events: none;
   }
 }
 
