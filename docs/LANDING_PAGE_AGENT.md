@@ -1155,3 +1155,267 @@ processes. **Do not tune against a single scrub sample on a busy machine.**
   video paused at t=0 with a working manual control
 - Everything outside S2: 4224 elements compared by path, differences are the
   vertical shift from the taller section plus 11 sub-pixel roundings
+
+---
+
+## Phase 7 — S5 Expression, the moving wall
+
+A new section between Rooms and the invite banner: three columns of avatar
+clips drifting in opposing directions, fading into darkness at both ends.
+
+### Files
+
+**Added** `src/components/sections/Expression/Expression.tsx`,
+`src/components/sections/Expression/index.ts`, `src/styles/expression.css`.
+**Modified** three lines total: one `@import` in `globals.css`, one import
+and one element in `page.tsx`. No existing section was touched.
+
+### The assets are five, not four
+
+`public/expression-video-slider/` holds **five** clips, not the four the
+brief expected: *feeling bored*, *feeling sad*, *funny*, *thinking* and
+*vibing on music*. All five are used. Every filename contains a space, so
+each `src` is `encodeURIComponent`-ed — the same trap the S2 welcome video
+hit. The files were not renamed, moved or altered.
+
+All five are **1440x1440** and 5.17s. Four are full-body characters and one
+(*funny*) is a close-up, which is why the cards are 4:5 with `object-cover`:
+over a square source that trims 10% off each side and keeps every character
+head to toe. Their backgrounds are already near-black, which is why they
+dissolve into the page so cleanly.
+
+### The marquee, and the half-gap trap
+
+Each column holds its cards **twice** and animates `translateY` between 0
+and -50% (reversed for the downward column). At -50% the second copy sits
+exactly where the first began, so the loop has no seam, needs no
+measurement, no scroll input and no per-frame JavaScript. Transform-only CSS
+keyframes, so the compositor owns it and the DNA canvas is untouched.
+
+**The gap has to live on the cards, not on the flex container.** A `gap`
+leaves `2n - 1` gaps in a strip of `2n` cards, so -50% lands half a gap away
+from the seam and the loop jumps once per pass. `margin-bottom` on every
+card makes the strip exactly `2n x (card + gap)`. Verified: seam error
+**≤ 0.09px** at all six required widths.
+
+Column durations are 46/54/50s — deliberately unequal, so the three never
+fall into step. Movement is independent of scroll, so a fast flick cannot
+change the rhythm.
+
+### The frame-rate ceiling — one clip, and it is measured
+
+This is the finding worth keeping. Steady-state DNA canvas frame rate with
+the section on screen, **GPU decoding enabled**:
+
+| clips playing | DNA canvas |
+|---|---|
+| 0 | 60fps |
+| 1 | 60fps, sustained |
+| 2 | 30fps |
+| 3+ | 30fps, every time |
+
+There is no slope — the second clip halves the page. The cause is source
+size: each clip is 1440x1440, **2.1 megapixels, twice a Rooms clip**
+(1536x672), drawn about 315px wide. Rooms holds 60fps with one clip of half
+that size, which is the budget this page has.
+
+So `MAX_PLAYING = 1`. The card nearest the middle of the viewport plays and
+the rest hold a still frame, selected by an IntersectionObserver whose root
+is shrunk to the centre band (`rootMargin: -34% 0px -34% 0px`). The columns
+still drift continuously, which is the section's real movement and costs
+nothing. **If the clips are ever re-exported near display size, raise the
+cap and re-measure.**
+
+Two dead ends recorded so nobody repeats them:
+
+- **A first ablation blamed `mask-image` for the drop.** It was wrong —
+  confounded by sampling right after pausing every clip. A clean pass put
+  the entire cost on the number playing: hiding the videos returned 60fps
+  while removing the mask, the scrims, `will-change` and the card shadows
+  each changed nothing. The fade is still two painted scrims rather than a
+  mask, because that is what was asked for and it is simpler — not for
+  frames.
+- **Clips kept playing after the section scrolled away**, holding the page
+  at 30fps behind the invite banner. A section-level observer now pauses
+  everything when the section leaves.
+
+### Loading
+
+Sources are attached by the observer, not rendered in JSX. Rendering `src`
+on all eighteen cards had all eighteen downloaded and decoded the moment the
+section approached — **including the third column, which is `display:none`
+on a phone**. A hidden element never intersects, so it now never loads:
+decoded clips dropped from 18 to 8 on mobile. React never writes `src`, so
+there is no reconciliation to fight over.
+
+### Responsive
+
+Three columns from 761px up; **two opposing columns below**, with the third
+dropped via `upto-760:hidden` rather than squeezed. Card size follows the
+column, from 315px wide at desktop down to 131px at 320px. Gallery is
+`min(980px, 100%)` wide and `clamp(470px, 84vh, 920px)` tall, so roughly two
+cards per column are in view and the wall reads as a wall.
+
+### Reduced motion
+
+The drift stops, the duplicated half is removed (`motion-reduce:hidden` on
+the clone — a **utility**, because a components-layer `display:none` cannot
+beat the card's own display utility, exactly the trap in the Tailwind
+migration notes), and clips are armed for their first frame but never
+played. A wall of looping video is moving content.
+
+### Validation
+
+`tsc` clean, `eslint` clean, production build clean. No new dependencies.
+
+- **Zero horizontal overflow** at 320/390/768/1024/1440/1920
+- Columns measured moving in opposing directions: -68.8px / +58.6px /
+  -63.4px over 2.5s
+- Seam error ≤ 0.09px at every width
+- **60fps** at hero, range, rooms, the expression wall and the invite banner,
+  with one clip playing
+- Exactly 1 clip playing at a time; 8-13 armed for still frames
+- Reduced motion: strips static, clones hidden, nothing playing
+- 0 console errors or warnings
+- Existing sections untouched — the whole diff outside the new files is
+  three added lines
+
+### Phase 7b — Expression visual polish
+
+Composition only. The marquee, the video-loading strategy and the
+one-clip-at-a-time cap are untouched.
+
+- **The gallery now clips (`overflow-hidden`), and that was the actual bug.**
+  Each strip is translated by up to -50% of its own height, and with no clip
+  those cards rendered *outside* the gallery — over the headline, above the
+  top scrim where nothing could fade them. That is what made the section
+  feel crowded. The clip edge is never visible because the scrims take the
+  content to full black well before it.
+- Space between the copy and the wall: **55px -> 107-121px**.
+- Wall is larger and more immersive: `min(980px)` -> `min(1120px)` wide,
+  84vh -> 90vh tall, cards 315x394 -> 362x452 at desktop.
+- Scrims deepened (18%/20% -> 30%/28%) with a three-stop falloff, so clips
+  dissolve well before either edge.
+- Removed the last per-clip decoration: the mood pills. Nothing is drawn on
+  a clip now — no border, shadow, hairline, badge or glow. Separation comes
+  only from darkness, spacing, the ambient wash and the scrims.
+- Headline capped 82px -> 74px so it stays the hero without eating the wall.
+- **Hover no longer pauses a column** (client request). The drift is the
+  section; stopping it under the cursor made the wall feel like a control.
+  Columns run continuously, always. Hover keeps only the scale and lift.
+
+Validated: no horizontal overflow at 320/390/768/1024/1440/1920; seam error
+≤ 0.09px; directions still up/down/up; 60fps at hero, range, rooms, the wall
+and the invite banner; one clip playing; reduced motion static with clones
+hidden and nothing playing; `lint`, `tsc` and `build` clean.
+
+---
+
+## Phase 8 — Rooms as a horizontal film strip
+
+The depth stack is gone. The three rooms no longer crossfade in place; they
+sit edge to edge in one strip and vertical scroll drags it right to left.
+
+**Files:** `Rooms.tsx`, `RoomScene.tsx`, `rooms.css`. Nothing else.
+
+### The travel is a constant, not a measurement
+
+The strip is `width: max-content` holding three panels, so it is exactly
+3x a panel wide. Moving from room one centred to room three centred is a
+shift of two panels — **exactly `-66.6667%` of the strip itself**. Because
+it is a percentage of the element, it never has to be measured and never
+changes with the breakpoint, so the panel can be any width the layout wants.
+
+`margin-left: calc((100% - var(--room-panel)) / 2)` on the strip parks room
+one in the middle at `x = 0`. That is the whole geometry.
+
+The strip is parked for the first 6% and last 12% of the runway, so rooms
+one and three are still long enough to be looked at. `overflow: hidden` on
+a full-bleed viewport is what keeps a transformed strip from ever reaching
+the page's scroll width — there is no nested scroller, only a transform.
+
+### The one-decoder rule, re-confirmed the hard way
+
+The first cut let two rooms decode while the strip was between panels, on
+the theory that two 1536x672 clips (2.1Mpx together) cost about what one
+1440x1440 Expression clip does. **That was wrong.** Measured, parked in a
+settled two-decoder window with GPU decoding on:
+
+| decoding | DNA canvas |
+|---|---|
+| 1 | 60fps |
+| 2 | 30fps |
+
+And nothing else in the section costs anything — hiding the videos restored
+60fps, while removing the fades, the glow and `will-change` each changed
+nothing. **The limit is the number of decoding video elements, not their
+pixel count.** One at a time, page-wide. The outgoing room now freezes on
+its last frame as the strip moves on; it is half off the viewport and
+behind the side scrim by then, which is the same trade the depth stack made.
+
+A second stall came from `isEager={index === 0 || isOnScreen}`, which
+flipped all three to `preload="auto"` the instant the section was reached
+and put two more full downloads on the wire — 13fps at the entry. It is now
+`index === 0 || (isOnScreen && index <= active + 1)`, so at most the current
+and next room preload in full.
+
+### Composition
+
+- The intro stays **outside** the pinned runway, so the heading is read at
+  full size before anything moves and is never cropped by the pin. Measured:
+  it clears the header at every width, with 305-392px between it and the
+  strip.
+- Panels touch — **no gap, no border, no shadow, no radius**. Measured gap
+  between panels: 0px at all six widths.
+- Labels moved into the panels, so each room's ordinal, name and line
+  travel with it instead of being a separate caption that swaps.
+- Four painted scrims (top, bottom, left, right) dissolve the strip into
+  darkness at every edge. Scrims rather than a mask, for the reason recorded
+  in the Expression notes.
+- Narrow screens get a narrower panel **and a taller crop** — 2.29:1 on a
+  phone is a letterbox with nothing readable in it. 78vw/2.29 on desktop,
+  86vw/1.78 under 900px, 88vw/1.33 under 560px.
+
+### Validation
+
+`lint`, `tsc --noEmit`, `build` all clean.
+
+- 320/390/768/1024/1440/1920: **zero horizontal page overflow**, zero gap
+  between panels, rooms centre 1 -> 2 -> 3 across the runway
+- Travel lands exactly two panels (-2240px at a 1120px panel)
+- **60fps** across the whole runway, and at range, expression and the invite
+  banner; the entry samples 53fps and settles to 60 within ~2s while the
+  clips finish loading
+- Exactly 1 decoder at every sampled point
+- Reduced motion: no pin, no transform, strip becomes a column, all three
+  rooms and all three labels present, nothing playing, no overflow
+
+### Invite banner — phone composition and hover target
+
+Composition only; the panel, arcs, gradient, typography and CTA are
+untouched. `PhoneStack.tsx` and three values in `newsletter.css`.
+
+- **Overlap `-0.46` -> `-0.30` of a screen's width.** At the old figure each
+  screen covered nearly half the one behind it and the three merged into a
+  single silhouette. Screen width dropped `196px -> 180px` and the desktop
+  `padding-right` went `26vw/400px -> 27vw/415px` so the wider fan does not
+  crowd the copy: measured clearance from the copy to the fan is now 138px
+  at 1440 (it was about 40px).
+- **The three tilts are no longer equal** (-18/-12/-19). A shared angle with
+  an even step is what made them read as one folded sheet.
+- **The hover target is the whole panel, not the fan.** Previously the
+  effect only existed if the pointer happened to reach the right-hand third
+  of the section; now reading the copy or moving to the CTA drifts the
+  screens apart. The listener is attached in `PhoneStack` to
+  `closest('.newsletter-panel')` — `Newsletter.tsx` is a server component
+  and this keeps it that way. `pointerenter`/`pointerleave`, which do not
+  bubble, so moving between children inside the panel never re-fires them.
+- The entrance and the hover now share one `animate` prop. Framer ranks
+  `whileInView` above `animate`, so keeping the reveal on `whileInView`
+  while driving hover from state would have had the two fighting for the
+  same element.
+
+Verified: hovering the headline moves all three screens by different
+amounts (-18/+27, +2/-36, +19/-31 px) and leaving the panel returns them
+exactly to rest; reduced motion shows all three at full opacity and ignores
+hover entirely; no horizontal overflow at 320/390/768/1024/1440/1920.

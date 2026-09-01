@@ -167,7 +167,7 @@ export function Arrival() {
               }
             >
               <span className="text-gradient">
-                What if someone knocks on your phone?
+                What if someone <br/> knocks on your phone?
               </span>
             </motion.span>
           </h2>

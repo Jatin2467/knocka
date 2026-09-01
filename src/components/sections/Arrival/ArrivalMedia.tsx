@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { arrivalMedia } from "@/lib/site-config";
 
@@ -12,8 +12,7 @@ export interface ArrivalMediaProps {
   isPlaying: boolean;
   /**
    * True when the section is rendering as a static composition. Reduced
-   * motion never autoplays a video of someone knocking, so that path needs a
-   * way to ask for it instead — the same control the blocked-sound path uses.
+   * motion holds on the first frame instead of playing a knock at someone.
    */
   allowManualPlay?: boolean;
   /**
@@ -33,21 +32,15 @@ export interface ArrivalMediaProps {
  * `arrivalMedia`. It currently names the welcome video, which the client
  * asked for here, with sound.
  *
- * ## Sound, and why it is written this way
+ * ## Sound
  *
- * **A browser will not autoplay audio without a prior user gesture, and
- * scrolling is not a gesture.** Chrome, Safari and Firefox all require real
- * activation — a click, a tap, a key — before an unmuted `play()` is allowed.
- * Since this fires on scroll, the honest options are to play silently, or to
- * try for sound and degrade well. This does the latter:
- *
- *   1. try unmuted;
- *   2. if the promise rejects, or the browser quietly mutes us anyway, fall
- *      back to muted playback so the arrival still happens;
- *   3. offer one button so the visitor can turn the knock on deliberately.
- *
- * Anyone who has already clicked anything on the page — the header CTA, a nav
- * link — gets step 1, because the activation is already banked.
+ * It plays with sound automatically, with no control to press. **A browser
+ * will not autoplay audio without a prior user gesture, and scrolling is not
+ * a gesture** — Chrome, Safari and Firefox all require a click, a tap or a
+ * key first. So this asks for sound, and when the browser refuses it plays
+ * muted and unmutes itself on the visitor's very next interaction anywhere on
+ * the page. Nothing is ever asked of them, and anyone who has already clicked
+ * something — the header CTA, a nav link — hears it on the first try.
  *
  * The `src` is withheld until the section is near, so the page never pays for
  * the download on first load, and it does not loop: an arrival that repeats
@@ -60,7 +53,6 @@ export function ArrivalMedia({
   onPlaybackStart,
 }: ArrivalMediaProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [soundBlocked, setSoundBlocked] = useState(false);
   const isVideo = arrivalMedia.kind === "video";
 
   /** Reports the real start of playback exactly once per arrival. */
@@ -82,7 +74,7 @@ export function ArrivalMedia({
     const video = videoRef.current;
     if (!video || !isArmed) return;
 
-    // Reduced motion: hold on the first frame and wait to be asked.
+    // Reduced motion: hold on the first frame.
     if (allowManualPlay) return;
 
     if (!isPlaying) {
@@ -95,6 +87,39 @@ export function ArrivalMedia({
     }
 
     let cancelled = false;
+    let waiting: (() => void) | undefined;
+
+    /*
+      The rescue path. Autoplay was refused sound, so the clip is running
+      muted; the first real gesture the visitor makes anywhere on the page
+      banks the activation this needed, and the sound simply comes on. If the
+      clip has already finished by then it starts over, because the knock is
+      the point of it.
+    */
+    const unmuteOnGesture = () => {
+      const events = ["pointerdown", "keydown", "touchstart"] as const;
+      const run = () => {
+        stop();
+        if (cancelled || video.muted === false) return;
+        video.muted = false;
+        video.volume = 1;
+        if (video.ended || video.paused) {
+          video.currentTime = 0;
+          started.current = false;
+          void video.play().catch(() => undefined);
+        }
+      };
+      const stop = () => {
+        for (const type of events) {
+          window.removeEventListener(type, run);
+        }
+      };
+      for (const type of events) {
+        window.addEventListener(type, run, { once: true, passive: true });
+      }
+      waiting = stop;
+    };
+
     video.currentTime = 0;
     video.muted = false;
     video.volume = 1;
@@ -102,66 +127,35 @@ export function ArrivalMedia({
     void video
       .play()
       .then(() => {
-        if (cancelled) return;
         // Some browsers honour play() but mute it rather than refusing.
-        setSoundBlocked(video.muted);
+        if (!cancelled && video.muted) unmuteOnGesture();
       })
       .catch(() => {
         if (cancelled) return;
         video.muted = true;
-        setSoundBlocked(true);
         void video.play().catch(() => undefined);
+        unmuteOnGesture();
       });
 
     return () => {
       cancelled = true;
+      waiting?.();
     };
   }, [isArmed, isPlaying, allowManualPlay]);
 
-  /** A real gesture, so this is always allowed to unmute. */
-  const enableSound = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = false;
-    video.volume = 1;
-    video.currentTime = 0;
-    started.current = false;
-    void video
-      .play()
-      .then(() => setSoundBlocked(video.muted))
-      .catch(() => undefined);
-  };
-
   if (arrivalMedia.kind === "video") {
     return (
-      <>
-        <video
-          ref={videoRef}
-          className="arrival-media-el"
-          src={isArmed ? arrivalMedia.src : undefined}
-          poster={arrivalMedia.poster}
-          preload={isArmed ? "auto" : "none"}
-          playsInline
-          aria-label={arrivalMedia.alt}
-          tabIndex={-1}
-          onPlaying={announce}
-        />
-
-        {isArmed && (allowManualPlay || (soundBlocked && isPlaying)) && (
-          <button
-            type="button"
-            className="arrival-sound"
-            onClick={enableSound}
-            aria-label="Play the knock with sound"
-          >
-            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M8.5 2.2 4.9 5.1H2.4a.9.9 0 0 0-.9.9v4a.9.9 0 0 0 .9.9h2.5l3.6 2.9a.6.6 0 0 0 1-.47V2.67a.6.6 0 0 0-1-.47Z" />
-              <path d="M11.4 5.1a.75.75 0 0 0-.1 1.5 1.9 1.9 0 0 1 0 2.8.75.75 0 1 0 1 1.1 3.4 3.4 0 0 0 0-5 .75.75 0 0 0-.9-.4Z" />
-            </svg>
-            Hear the knock
-          </button>
-        )}
-      </>
+      <video
+        ref={videoRef}
+        className="arrival-media-el"
+        src={isArmed ? arrivalMedia.src : undefined}
+        poster={arrivalMedia.poster}
+        preload={isArmed ? "auto" : "none"}
+        playsInline
+        aria-label={arrivalMedia.alt}
+        tabIndex={-1}
+        onPlaying={announce}
+      />
     );
   }
 

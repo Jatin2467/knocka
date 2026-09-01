@@ -1,6 +1,7 @@
 import { DNAAnimation } from "@/components/animation/DNAAnimation";
 import { SiteHeader } from "@/components/navigation";
 import { Arrival } from "@/components/sections/Arrival";
+import { Expression } from "@/components/sections/Expression";
 import { Footer } from "@/components/sections/Footer";
 import { Hero } from "@/components/sections/Hero";
 import { Newsletter } from "@/components/sections/Newsletter";
@@ -19,6 +20,7 @@ export default function Home() {
       <Arrival />
       <Range />
       <Rooms />
+      <Expression />
       <Newsletter />
       <Footer />
     </main>

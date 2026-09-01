@@ -229,7 +229,7 @@
       This value is the fallback for the still-image path.
     */
     --arrival-ratio: 1 / 1;
-    width: min(470px, 100%, 46svh);
+    width: max(220px, min(620px, 100%, calc(100svh - 360px)));
   }
 
   .arrival-bloom {
@@ -296,7 +296,7 @@
 
   .arrival-frame img.arrival-media-el {
     width: auto;
-    height: 88%;
+    height: 90%;
     max-width: 92%;
     object-fit: contain;
   }
@@ -318,50 +318,6 @@
       inset 0 0 0 1px rgba(216, 180, 254, 0.6),
       inset 0 0 70px rgba(168, 85, 247, 0.4);
     pointer-events: none;
-  }
-
-  /*
-    Shown only when the browser refused to autoplay with sound, which happens
-    whenever the visitor has not yet clicked anything: unmuted autoplay needs
-    a real user gesture and scrolling is not one.
-
-    Top-RIGHT. The two knock marks own top-left and bottom-right, and the
-    bottom-left placement this started on ran straight into mark 2 at every
-    frame width — the frame is only ~340px across.
-  */
-  .arrival-sound {
-    position: absolute;
-    z-index: 4;
-    top: 7%;
-    right: 6%;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 14px;
-    border: 1px solid var(--color-border-glass);
-    border-radius: var(--radius-pill);
-    background: rgba(9, 7, 16, 0.72);
-    color: var(--color-text-primary);
-    font-size: clamp(10px, 0.9vw, 12px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    transition:
-      border-color 0.25s ease,
-      background-color 0.25s ease;
-  }
-
-  .arrival-sound:hover,
-  .arrival-sound:focus-visible {
-    border-color: var(--color-border-accent-strong);
-    background: rgba(24, 12, 40, 0.86);
-  }
-
-  /* Inline SVG, sized to the label. An earlier attempt drew this from a box
-     plus a bordered ::after and rendered as a square, not a speaker. */
-  .arrival-sound svg {
-    width: 13px;
-    height: 13px;
-    flex: none;
   }
 
   /* ---------- Beat 07: the breath before S3 ---------- */
@@ -389,7 +345,7 @@
     }
 
     .arrival-stack {
-      width: min(420px, 100%, 42svh);
+      width: max(200px, min(520px, 100%, calc(100svh - 330px)));
     }
   }
 

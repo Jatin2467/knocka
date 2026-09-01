@@ -1,17 +1,23 @@
 /* ============================================================
-   ROOMS — "arrival"
+   ROOMS — the film strip
 
-   A pinned portal you travel forward through. The three worlds
-   are stacked in Z inside one cinematic frame; scroll flies the
-   camera through them, so the outgoing world passes the lens
-   while the next scales up from behind.
+   A pinned stage holding one continuous horizontal strip. The
+   three rooms sit edge to edge with no gap between them, and
+   vertical scroll drags the strip right to left, so scrolling
+   down pulls the world sideways.
+
+   The strip moves by translateX only, expressed as a percentage
+   of its own width, so nothing is ever measured: three panels
+   make the strip 3x a panel wide, and moving from the first
+   centred to the third centred is exactly -2/3 of it, whatever
+   the panel width happens to be at that breakpoint.
 
    Everything animated here is transform or opacity. No filters
    on moving layers: the DNA canvas repaints continuously behind
    this section, and any blur or shadow on a moving element would
    re-rasterise every frame.
 
-   The portal sits over the existing fixed DNA canvas rather than
+   The strip sits over the existing fixed DNA canvas rather than
    introducing a second one, and the three glows step purple ->
    magenta -> cyan, so travelling the rooms walks the brand
    gradient.
@@ -25,10 +31,15 @@
 
   /* ---------- Intro ---------- */
 
+  /*
+    Outside the pinned runway on purpose. The heading is read at full size,
+    in full, before anything moves, and then scrolls away as the strip takes
+    over — nothing is ever laid over it and it is never cropped by the pin.
+  */
   .rooms-intro {
     width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
     margin-inline: auto;
-    padding-block: clamp(64px, 8.5vh, 112px) clamp(28px, 4.5vh, 56px);
+    padding-block: clamp(64px, 8.5vh, 112px) clamp(40px, 6vh, 80px);
     text-align: center;
   }
 
@@ -48,7 +59,7 @@
   .rooms-title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(34px, 6.6vw, 96px);
+    font-size: clamp(34px, min(6.6vw, 9vh), 96px);
     font-weight: var(--font-weight-display);
     line-height: 0.92;
     letter-spacing: -0.04em;
@@ -74,11 +85,9 @@
   /* ---------- Pinned runway ---------- */
 
   /*
-    Was 340vh, which made the section 392vh — 67% of the page before S2 and
-    S3 existed. At 220vh the travel is 120vh across three worlds, so a
-    crossfade takes about an eighth of a viewport instead of a quarter: the
-    camera moves through the rooms rather than dissolving between them.
-    The strategy caps any single section at 300vh; the section lands at 294.
+    220vh gives 120vh of travel across three rooms. The strategy caps any
+    single section at 300vh; with the intro and the payoff the section lands
+    under that.
   */
   .rooms-runway {
     height: 220vh;
@@ -93,64 +102,144 @@
     align-content: center;
     justify-items: center;
     gap: clamp(20px, 2.6vh, 34px);
-    padding: clamp(84px, 11vh, 120px) var(--container-gutter)
-      clamp(28px, 5vh, 56px);
+    /* No inline padding: the strip is full-bleed and clips itself. The index
+       below it carries its own centred width. */
+    padding: clamp(84px, 11vh, 120px) 0 clamp(28px, 5vh, 56px);
   }
 
-  /* ---------- Portal ---------- */
+  /* ---------- The strip ---------- */
 
-  .rooms-portal-wrap {
+  /*
+    Full-bleed and clipping. The panels are narrower than the viewport, so the
+    rooms either side stay part visible and the three read as one strip rather
+    than three cards. overflow:hidden is what keeps a transformed strip from
+    ever reaching the page's own scroll width — there is no nested scroller
+    here, only a transform.
+  */
+  .rooms-viewport {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .rooms-strip {
+    /*
+      max-content so the strip is exactly three panels wide, which is what
+      lets the -66.6667% travel land on the third panel without measuring
+      anything. The left margin parks panel one in the middle at x = 0.
+    */
+    display: flex;
+    width: max-content;
+    margin-left: calc((100% - var(--room-panel)) / 2);
+    will-change: transform;
+  }
+
+  .rooms-panel {
+    --room-panel: min(1120px, 78vw);
     --room-ratio: 2.2857;
 
-    position: relative;
-    width: min(var(--stage-max), 100%, calc(58svh * var(--room-ratio)));
+    flex: none;
+    width: var(--room-panel);
   }
 
-  .rooms-portal {
+  /* No gap, no border, no shadow, no radius: the rooms touch. */
+  .rooms-panel-frame {
     position: relative;
-    z-index: 1;
     width: 100%;
     aspect-ratio: var(--room-ratio);
     overflow: hidden;
-    border-radius: clamp(16px, 1.6vw, 28px);
     background: #05040a;
   }
 
-  .room-scene {
-    position: absolute;
-    inset: 0;
-    will-change: transform, opacity;
-  }
-
-  .room-scene video {
+  .room-scene-video {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
   }
 
-  .room-scene-scrim {
+  .rooms-panel-label {
+    display: flex;
+    align-items: baseline;
+    gap: clamp(10px, 1.1vw, 16px);
+    margin: clamp(14px, 1.8vh, 24px) 0 0;
+    padding-inline: clamp(2px, 0.6vw, 10px);
+  }
+
+  .rooms-panel-ordinal {
+    color: var(--color-accent-violet);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+  }
+
+  .rooms-panel-name {
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    font-size: clamp(17px, 1.9vw, 26px);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: -0.01em;
+  }
+
+  .rooms-panel-line {
+    color: var(--color-text-secondary);
+    font-size: clamp(12px, 1vw, 15px);
+  }
+
+  /* ---------- Travelling through darkness ---------- */
+
+  /*
+    Painted scrims, not a mask. A mask over a container holding decoding
+    video forces a slow compositing path — the Expression section measured
+    that at half the DNA canvas's frame rate. These are static paints.
+  */
+  .rooms-fade {
     position: absolute;
-    inset: 0;
-    background: #04030a;
+    z-index: 3;
     pointer-events: none;
   }
 
-  .rooms-portal-edge {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    border: 1px solid var(--color-border-glass);
-    border-radius: inherit;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    pointer-events: none;
+  .rooms-fade-top,
+  .rooms-fade-bottom {
+    left: 0;
+    right: 0;
+    height: clamp(24px, 7%, 70px);
+  }
+
+  .rooms-fade-top {
+    top: 0;
+    background: linear-gradient(to bottom, var(--color-void), transparent);
+  }
+
+  .rooms-fade-bottom {
+    bottom: 0;
+    background: linear-gradient(to top, var(--color-void), transparent);
+  }
+
+  /* The strip runs off both sides; these are where it enters and leaves. */
+  .rooms-fade-left,
+  .rooms-fade-right {
+    top: 0;
+    bottom: 0;
+    width: clamp(44px, 13vw, 250px);
+  }
+
+  .rooms-fade-left {
+    left: 0;
+    background: linear-gradient(to right, var(--color-void), transparent);
+  }
+
+  .rooms-fade-right {
+    right: 0;
+    background: linear-gradient(to left, var(--color-void), transparent);
   }
 
   /* ---------- Atmosphere ---------- */
 
   .rooms-glow {
     position: absolute;
-    inset: -24% -2%;
+    inset: -18% 12%;
+    z-index: 0;
     pointer-events: none;
   }
 
@@ -160,8 +249,8 @@
     border-radius: 50%;
     background: radial-gradient(
       closest-side,
-      rgba(var(--glow), 0.42) 0%,
-      rgba(var(--glow), 0.16) 44%,
+      rgba(var(--glow), 0.34) 0%,
+      rgba(var(--glow), 0.13) 44%,
       transparent 72%
     );
     opacity: 0;
@@ -172,64 +261,26 @@
     opacity: 1;
   }
 
-  /* ---------- Caption + progress ---------- */
-
-  .rooms-caption {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
-    width: min(var(--stage-max), 100%, calc(58svh * 2.2857));
-  }
-
-  .rooms-caption-slot {
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 58px;
-  }
-
-  .rooms-caption-item {
-    position: absolute;
-    inset: 0;
-  }
-
-  .rooms-caption-name {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin: 0;
-    color: var(--color-text-primary);
-    font-family: var(--font-display);
-    font-size: clamp(18px, 2vw, 26px);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: -0.01em;
-  }
-
-  .rooms-caption-ordinal {
-    color: var(--color-accent-violet);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-  }
-
-  .rooms-caption-line {
-    margin: 6px 0 0;
-    color: var(--color-text-secondary);
-    font-size: clamp(13px, 1vw, 15px);
-  }
+  /* ---------- Index ---------- */
 
   /*
-    The progress indicator moved wholly into RoomProgress.tsx during the
-    Tailwind migration - including its three data-state colours, which are now
-    data-* variants next to the attribute that drives them. Nothing about it
-    is left here, so there is no split ownership to keep in step.
+    The progress indicator itself lives wholly in RoomProgress.tsx — including
+    its three data-state colours, which are data-* variants next to the
+    attribute that drives them. This only gives it a centred column, since the
+    stage above it is full-bleed.
   */
+  .rooms-index {
+    display: flex;
+    justify-content: center;
+    width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
+    margin-inline: auto;
+  }
 
   /* ---------- Closing payoff ---------- */
 
   /*
     Deliberately quiet, and deliberately not another headline: the page
-    already carries four display headlines, and this is a landing, not a
+    already carries several display headlines, and this is a landing, not a
     hook. It sets at about half the section headline, under a rule that
     echoes the progress track, with generous air on both sides so the
     section breathes before whatever follows it.
@@ -276,13 +327,15 @@
 
   /* ---------- Responsive ---------- */
 
+  /*
+    Narrower screens get a narrower panel AND a taller crop, rather than the
+    desktop composition scaled down — a 2.29:1 room on a phone is a letterbox
+    strip with nothing readable in it.
+  */
   @media (max-width: 900px) {
-    .rooms-portal-wrap {
+    .rooms-panel {
+      --room-panel: min(660px, 86vw);
       --room-ratio: 1.7778;
-    }
-
-    .rooms-caption {
-      width: min(var(--stage-max), 100%, calc(58svh * 1.7778));
     }
 
     .rooms-runway {
@@ -291,20 +344,54 @@
   }
 
   @media (max-width: 560px) {
-    .rooms-portal-wrap {
+    .rooms-panel {
+      --room-panel: 88vw;
       --room-ratio: 1.3333;
     }
+  }
 
-    .rooms-caption {
-      width: 100%;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
+  /* ---------- Static composition ---------- */
+
+  /*
+    Reduced motion drops the pin and the horizontal travel and stacks the
+    three rooms into a readable column. Nothing is hidden; the strip simply
+    stops being a strip.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .rooms-runway {
+      height: auto;
     }
 
-    .rooms-caption-slot {
-      width: 100%;
-      min-height: 50px;
+    .rooms-stage {
+      position: static;
+      height: auto;
+      padding-block: clamp(40px, 6vh, 72px);
+    }
+
+    .rooms-viewport {
+      overflow: visible;
+    }
+
+    .rooms-strip {
+      width: auto;
+      flex-direction: column;
+      gap: clamp(28px, 4vh, 48px);
+      margin-left: 0;
+    }
+
+    .rooms-panel {
+      --room-panel: min(
+        var(--stage-max),
+        calc(100% - 2 * var(--container-gutter))
+      );
+      --room-ratio: 1.7778;
+
+      margin-inline: auto;
+    }
+
+    .rooms-fade,
+    .rooms-glow {
+      display: none;
     }
   }
 }

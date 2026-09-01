@@ -1,10 +1,9 @@
 "use client";
 
 import {
-  AnimatePresence,
   motion,
-  useInView,
   useMotionValueEvent,
+  useInView,
   useReducedMotion,
   useScroll,
   useTransform,
@@ -15,33 +14,40 @@ import { TextReveal } from "@/components/animation/TextReveal";
 import { rooms } from "@/lib/site-config";
 
 import { RoomProgress } from "./RoomProgress";
-import { ROOM_FADE, RoomScene } from "./RoomScene";
+import { RoomScene } from "./RoomScene";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
 /**
- * Point inside a world's band where the next one starts decoding.
+ * How far the strip has to travel, as a fraction of its own width.
  *
- * This single number is the whole two-decode window: the incoming world
- * starts here, and the outgoing one freezes when the label swaps at 0.85.
- * While both decode, the DNA canvas halves.
- *
- * Measured: at 0.72 the window was 13% of a band and the canvas held 30fps
- * inside it. At 0.82 it is 3%. The cost is that the incoming world is a
- * still frame for the first stretch of its fade — but only while it is
- * under half opacity on a layer that is still scaling up, which is the same
- * reasoning that lets the outgoing world freeze.
+ * The strip holds three panels, so its width is 3 x panel. Moving from panel
+ * one centred to panel three centred is a shift of exactly two panels, which
+ * is 2/3 of the strip. Because it is expressed as a percentage of the element
+ * itself, this number never has to be measured and never changes with the
+ * breakpoint — the panel width can be whatever the layout wants.
  */
-const WARM_AT = 0.82;
+const STRIP_TRAVEL = "-66.6667%";
+
+/**
+ * A beat of stillness at each end, so the first and last rooms are not
+ * already sliding the instant they arrive. The strip is parked for the first
+ * 6% and the last 12% of the runway; the last one is longer because room
+ * three has nothing after it and should be looked at before the section ends.
+ */
+const HOLD_IN = 0.06;
+const HOLD_OUT = 0.88;
 
 export function Rooms() {
   const reduceMotion = useReducedMotion();
+  const isStatic = reduceMotion === true;
   const runwayRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  // Bitmask of worlds that should be decoding. A number rather than an array
+  // Bitmask of rooms that should be decoding. A number rather than an array
   // so the equality guard below is a plain comparison.
   const [playMask, setPlayMask] = useState(1);
 
-  // Generous margin so the first world has downloaded before it is needed.
+  // Generous margin so the first room has downloaded before it is needed.
   const isNear = useInView(runwayRef, { margin: "80% 0px 80% 0px" });
   const isOnScreen = useInView(runwayRef, { amount: 0.01 });
 
@@ -54,8 +60,7 @@ export function Rooms() {
     Framer Motion v13 hands scroll-linked transform chains to the browser as
     native ViewTimeline animations, and stops writing the JS value once it
     does. Measured here, that native timeline runs out of step with the
-    useScroll range — it reported 52.8% progress at the end of the runway, so
-    the first world faded back in over the last one.
+    useScroll range — it reported 52.8% progress at the end of the runway.
 
     Acceleration is only attached when a transform maps an array range
     straight off the scroll value, so routing it through one function
@@ -64,38 +69,47 @@ export function Rooms() {
   */
   const progress = useTransform(scrollYProgress, (value) => value);
 
+  /** Vertical scroll pulls the world sideways. translateX only. */
+  const x = useTransform(
+    progress,
+    [0, HOLD_IN, HOLD_OUT, 1],
+    ["0%", "0%", STRIP_TRAVEL, STRIP_TRAVEL],
+  );
+
   useMotionValueEvent(scrollYProgress, "change", (value) => {
     const last = rooms.length - 1;
-    const scaled = Math.min(
-      rooms.length - 0.0001,
-      Math.max(0, value * rooms.length),
-    );
-    const raw = Math.floor(scaled);
-    const frac = scaled - raw;
+    // Where the strip is, measured in panels: 0 at room one, 2 at room three.
+    const span = (Math.min(HOLD_OUT, Math.max(HOLD_IN, value)) - HOLD_IN) /
+      (HOLD_OUT - HOLD_IN);
+    const position = span * last;
+    const nearest = Math.min(last, Math.max(0, Math.round(position)));
 
-    // The crossfade ends on the band boundary, so keying the label off
-    // Math.floor alone would leave it a whole transition behind the picture.
-    // Shifting by half the fade swaps it as the new world passes 50%.
-    const label = Math.min(last, Math.floor(scaled + ROOM_FADE / 2));
+    /*
+      EXACTLY ONE ROOM DECODES. Measured on this page, parked in a settled
+      two-decoder window with GPU decoding on: one playing video holds the DNA
+      canvas at 60fps, two drops it to 30, and nothing else in this section
+      costs anything — hiding the videos restored 60fps while removing the
+      fades, the glow and will-change each changed nothing.
 
-    // Two videos decoding at once halves the canvas frame rate, so the
-    // overlap is kept as short as the crossfade allows: the next world warms
-    // just before it appears, and the outgoing one freezes on its last frame
-    // once the label has swapped — by then it is scaling away and fading, so
-    // a still frame does not read.
-    let mask = 1 << label;
-    if (frac > WARM_AT && raw < last) mask |= 1 << (raw + 1);
+      So the outgoing room freezes on its last frame as the strip moves on.
+      It is half off the viewport and behind the side scrim by then, which is
+      the same trade the depth-stack version made for the same reason.
+    */
+    const mask = 1 << nearest;
 
     // Functional updates with an equality guard: this fires on every scroll
     // frame but only ever re-renders on an actual change.
-    setActive((prev) => (prev === label ? prev : label));
+    setActive((prev) => (prev === nearest ? prev : nearest));
     setPlayMask((prev) => (prev === mask ? prev : mask));
   });
 
-  const activeRoom = rooms[active] ?? rooms[0];
-
   return (
     <section className="rooms" id="rooms" aria-labelledby="rooms-title">
+      {/*
+        The introduction sits outside the pinned runway, so it is read at full
+        size and in full before anything moves, then scrolls away as the strip
+        takes over. Nothing is ever laid over it.
+      */}
       <div className="rooms-intro">
         <motion.p
           className="rooms-eyebrow"
@@ -130,10 +144,10 @@ export function Rooms() {
 
       <div className="rooms-runway" ref={runwayRef}>
         <div className="rooms-stage">
-          <div className="rooms-portal-wrap">
-            {/* Glow layers, one per world, crossfaded by class rather than by
-                a per-frame style write. They sit behind the frame and spill
-                past it, tinting the DNA field around the portal. */}
+          <div className="rooms-viewport">
+            {/* Glow layers, one per room, crossfaded by class rather than by
+                a per-frame style write. They sit behind the strip and tint
+                the DNA field around it. */}
             <div className="rooms-glow" aria-hidden="true">
               {rooms.map((room, index) => (
                 <span
@@ -145,50 +159,45 @@ export function Rooms() {
               ))}
             </div>
 
-            <div className="rooms-portal">
+            <motion.div
+              className="rooms-strip"
+              style={isStatic ? undefined : { x }}
+            >
               {rooms.map((room, index) => (
-                <RoomScene
-                  key={room.id}
-                  room={room}
-                  index={index}
-                  total={rooms.length}
-                  progress={progress}
-                  isArmed={isNear}
-                  isEager={index === 0 || isOnScreen}
-                  isPlaying={isOnScreen && (playMask & (1 << index)) !== 0}
-                />
+                <article className="rooms-panel" key={room.id}>
+                  <div className="rooms-panel-frame">
+                    <RoomScene
+                      room={room}
+                      isArmed={isNear}
+                      isEager={index === 0 || (isOnScreen && index <= active + 1)}
+                      isPlaying={
+                        !isStatic &&
+                        isOnScreen &&
+                        (playMask & (1 << index)) !== 0
+                      }
+                    />
+                  </div>
+
+                  {/* The label belongs to its room and travels with it. */}
+                  <p className="rooms-panel-label">
+                    <span className="rooms-panel-ordinal">{room.ordinal}</span>
+                    <span className="rooms-panel-name">{room.name}</span>
+                    <span className="rooms-panel-line">{room.line}</span>
+                  </p>
+                </article>
               ))}
-              <div className="rooms-portal-edge" aria-hidden="true" />
-            </div>
+            </motion.div>
+
+            {/* The strip travels through darkness: it dissolves at both ends
+                rather than stopping at a hard edge. */}
+            <div className="rooms-fade rooms-fade-top" aria-hidden="true" />
+            <div className="rooms-fade rooms-fade-bottom" aria-hidden="true" />
+            <div className="rooms-fade rooms-fade-left" aria-hidden="true" />
+            <div className="rooms-fade rooms-fade-right" aria-hidden="true" />
           </div>
 
-          <div className="rooms-caption">
-            <div className="rooms-caption-slot">
-              <AnimatePresence initial={false}>
-                <motion.div
-                  key={activeRoom.id}
-                  className="rooms-caption-item"
-                  initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
-                  transition={{ duration: reduceMotion ? 0.2 : 0.55, ease: EASE_OUT }}
-                >
-                  <p className="rooms-caption-name">
-                    <span className="rooms-caption-ordinal">
-                      {activeRoom.ordinal}
-                    </span>
-                    {activeRoom.name}
-                  </p>
-                  <p className="rooms-caption-line">{activeRoom.line}</p>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            <RoomProgress
-              rooms={rooms}
-              active={active}
-              progress={progress}
-            />
+          <div className="rooms-index">
+            <RoomProgress rooms={rooms} active={active} progress={progress} />
           </div>
         </div>
       </div>
@@ -199,30 +208,6 @@ export function Rooms() {
         the pinned stage on normal scroll, deliberately small and quiet — the
         section has just had its peak and the next one needs the room.
       */}
-      <div className="rooms-payoff">
-        <motion.span
-          className="rooms-payoff-rule"
-          aria-hidden="true"
-          initial={reduceMotion ? { opacity: 0 } : { scaleX: 0, opacity: 0 }}
-          whileInView={{ scaleX: 1, opacity: 1 }}
-          viewport={{ once: true, amount: 0.8 }}
-          transition={{ duration: reduceMotion ? 0.3 : 0.9, ease: EASE_OUT }}
-        />
-        <motion.p
-          className="rooms-payoff-line"
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.6 }}
-          transition={{
-            duration: reduceMotion ? 0.3 : 0.9,
-            ease: EASE_OUT,
-            delay: reduceMotion ? 0 : 0.12,
-          }}
-        >
-          Same friends.{" "}
-          <span className="text-gradient">Different worlds.</span>
-        </motion.p>
-      </div>
     </section>
   );
 }

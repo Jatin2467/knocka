@@ -117,7 +117,7 @@
   /* ---------- The phone fan ---------- */
 
   .newsletter-phones {
-    --phone-w: clamp(92px, 14vw, 196px);
+    --phone-w: clamp(88px, 13vw, 180px);
     position: relative;
     z-index: 2;
     display: flex;
@@ -153,8 +153,13 @@
     will-change: transform;
   }
 
+  /*
+    -0.30, not -0.46. At the old overlap each screen covered nearly half the
+    one behind it and the three merged into a single silhouette. This leaves
+    them touching-but-distinct, which is what the fan is for.
+  */
   .newsletter-phone + .newsletter-phone {
-    margin-left: calc(var(--phone-w) * -0.46);
+    margin-left: calc(var(--phone-w) * -0.3);
   }
 
   /* The welcome screen is the one worth reading, so it sits on top
@@ -187,7 +192,7 @@
       centre, which is what keeps the two apart without a grid.
     */
     .newsletter-panel {
-      padding-right: clamp(190px, 26vw, 400px);
+      padding-right: clamp(190px, 27vw, 415px);
     }
 
     .newsletter-phones {

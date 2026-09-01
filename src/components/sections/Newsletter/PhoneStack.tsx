@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -17,7 +18,7 @@ interface Phone {
   readonly alt: string;
   /** Where it sits at rest. */
   readonly rest: Pose;
-  /** Where it slides to while the fan is hovered. */
+  /** Where it drifts to while the panel is hovered. */
   readonly open: Pose;
 }
 
@@ -29,19 +30,24 @@ interface Phone {
  *
  * Poses are percentages rather than pixels so the whole fan scales with
  * --phone-w. One set of numbers works from 320px to 1920px.
+ *
+ * The three angles are deliberately not equal. Giving each screen its own
+ * tilt is what separates the silhouettes where they overlap — with a shared
+ * angle and an even step they read as one folded sheet rather than three
+ * objects.
  */
 const PHONES: readonly Phone[] = [
   {
     src: "/news-latter-phone-img/avatar-setup.png",
     alt: "Building a Knocka avatar",
-    rest: { x: 0, y: 9, rotate: -16 },
-    open: { x: -8, y: 15, rotate: -21 },
+    rest: { x: -2, y: 13, rotate: -18 },
+    open: { x: -12, y: 20, rotate: -22 },
   },
   {
     src: "/news-latter-phone-img/Welcome.png",
     alt: "The Knocka welcome screen: don't text, arrive",
-    rest: { x: 0, y: -4, rotate: -16 },
-    open: { x: 0, y: -11, rotate: -16 },
+    rest: { x: 0, y: -5, rotate: -12 },
+    open: { x: 1, y: -14, rotate: -9 },
   },
   {
     // The file name has a space in it. Encoded, because next/image hands the
@@ -49,8 +55,8 @@ const PHONES: readonly Phone[] = [
     // survive the round trip.
     src: "/news-latter-phone-img/splash%20screen.png",
     alt: "The Knocka splash screen",
-    rest: { x: 0, y: -17, rotate: -16 },
-    open: { x: 15, y: -24, rotate: -11 },
+    rest: { x: 2, y: -22, rotate: -19 },
+    open: { x: 13, y: -30, rotate: -23 },
   },
 ];
 
@@ -63,33 +69,63 @@ const pose = (p: Pose, dropBy = 0) => ({
 /**
  * Three app screens fanned out and cropped by the panel edge.
  *
- * Hover opens the fan: each screen moves a different amount and by a
- * different angle, so the group spreads rather than sliding as a block. It is
- * a spring on x/y/rotate only — compositor work, no layout, no repaint, and
- * nothing that can disturb the DNA canvas painting behind the panel.
+ * **The hover target is the whole invite panel, not the fan.** Hovering the
+ * screens themselves meant the effect only existed if you happened to move
+ * the pointer to the right-hand third of the section; now reading the copy or
+ * reaching for the CTA drifts them apart. The listener goes on the panel
+ * because that element is rendered by a server component — attaching here
+ * keeps `Newsletter.tsx` free of `"use client"`.
  *
- * The gesture sits on the wrapper, not on each screen. Pointer events on a
- * child count as entering its ancestors, so hovering any one of the three
- * opens all three, and moving between them never restarts the animation.
+ * `pointerenter` / `pointerleave` rather than `mouseover`: they do not bubble,
+ * so moving between children inside the panel never re-fires them.
+ *
+ * The entrance and the hover share one `animate` prop instead of stacking
+ * `whileInView` over `whileHover`. Framer ranks `whileInView` above `animate`,
+ * so the two would have fought for the same element.
  */
 export function PhoneStack() {
   const reduceMotion = useReducedMotion() === true;
+  const stackRef = useRef<HTMLDivElement>(null);
+  const [lifted, setLifted] = useState(false);
+
+  // The panel clips with overflow:hidden and the fan deliberately overflows
+  // it, so IntersectionObserver only ever sees part of this wrapper. 0.2
+  // keeps the trigger well clear of that ceiling.
+  const revealed = useInView(stackRef, { once: true, amount: 0.2 });
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const panel = stackRef.current?.closest(".newsletter-panel");
+    if (!panel) return;
+
+    const enter = () => setLifted(true);
+    const leave = () => setLifted(false);
+    panel.addEventListener("pointerenter", enter);
+    panel.addEventListener("pointerleave", leave);
+    return () => {
+      panel.removeEventListener("pointerenter", enter);
+      panel.removeEventListener("pointerleave", leave);
+    };
+  }, [reduceMotion]);
+
+  // Reduced motion skips the entrance outright rather than fading in on view.
+  // The copy beside these is AOS, whose "disable" hook leaves it
+  // unconditionally visible, so a scroll-gated reveal here left the three
+  // screens at opacity 0 while the words around them were painted.
+  const state = reduceMotion
+    ? "rest"
+    : !revealed
+      ? "stacked"
+      : lifted
+        ? "open"
+        : "rest";
 
   return (
     <motion.div
+      ref={stackRef}
       className="newsletter-phones"
-      // Reduced motion skips the entrance outright rather than fading in on
-      // view. The copy beside these is AOS, whose "disable" hook leaves it
-      // unconditionally visible, so a scroll-gated reveal here left the three
-      // screens at opacity 0 while the words around them were painted —
-      // measured by jumping to the page bottom under prefers-reduced-motion.
       initial={reduceMotion ? "rest" : "stacked"}
-      whileInView={reduceMotion ? undefined : "rest"}
-      whileHover={reduceMotion ? undefined : "open"}
-      // The panel clips with overflow:hidden and the fan deliberately
-      // overflows it, so IntersectionObserver only ever sees part of this
-      // wrapper. 0.2 keeps the trigger well clear of that ceiling.
-      viewport={{ once: true, amount: 0.2 }}
+      animate={state}
     >
       {PHONES.map((phone, index) => (
         <motion.div
@@ -114,9 +150,11 @@ export function PhoneStack() {
               opacity: 1,
               transition: {
                 type: "spring",
-                stiffness: 210,
-                damping: 24,
-                mass: 0.7,
+                stiffness: 190,
+                damping: 26,
+                mass: 0.8,
+                // A hair of stagger so they drift apart rather than as a slab.
+                delay: index * 0.035,
               },
             },
           }}
