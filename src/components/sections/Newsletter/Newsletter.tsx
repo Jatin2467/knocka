@@ -10,10 +10,8 @@ import { PhoneStack } from "./PhoneStack";
  * stops it, which is what makes the section read as an end rather than
  * another beat.
  *
- * **The email field is a front-end shell and posts nowhere** — see
- * `EmailSignup`. There is still no backend, no API route and no endpoint in
- * this project, so it has to be wired to something real before launch or it
- * will collect addresses that go straight in the bin. The CTA keeps the label
+ * The email field posts to /api/waitlist, which emails the owner and sends
+ * the visitor a confirmation — see `EmailSignup`. The CTA keeps the label
  * the header already uses, because the page should ask for the same thing in
  * the same words every time it asks.
  *
@@ -33,7 +31,8 @@ export function Newsletter() {
       id="newsletter"
       aria-labelledby="newsletter-title"
     >
-      <div className="newsletter-panel">
+      {/* The panel settles in first; its copy rises inside it just after. */}
+      <div className="newsletter-panel" data-aos="knocka-zoom">
         {/* Concentric arcs rising out of the bottom-left corner — the DNA
             strand's curve, held still and used as furniture. */}
         <span className="newsletter-arcs" aria-hidden="true">
@@ -55,7 +54,7 @@ export function Newsletter() {
           {/* font-[900] rather than a named weight: --font-weight-display and
               --font-display (the family) would both generate `font-display`. */}
           <h2
-            data-aos="knocka-rise"
+            data-aos="knocka-heading"
             className="font-display text-[clamp(30px,4.6vw,54px)]/[0.94] font-[900] tracking-[-0.042em] text-balance uppercase delay-[60ms]"
             id="newsletter-title"
           >
@@ -78,7 +77,7 @@ export function Newsletter() {
           >
             <EmailSignup
               label="Your email address"
-              buttonLabel="Join the Waitlist →"
+              buttonLabel="Join the Waitlist"
               className="max-w-[clamp(280px,34vw,470px)]"
             />
             <p className="text-[11px] tracking-[0.16em] text-[rgba(255,255,255,0.5)] uppercase">

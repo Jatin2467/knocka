@@ -43,7 +43,10 @@
   .range-inner {
     width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
     margin-inline: auto;
-    padding-block: clamp(122px, 17vh, 196px) clamp(80px, 11vh, 150px);
+    /* The bottom is short on purpose: the lowest profiles already sit at the
+       foot of the stage, and Arrival's pinned stage brings its own header
+       clearance above its content. Padding here stacked on top of that. */
+    padding-block: clamp(122px, 17vh, 196px) clamp(24px, 4vh, 56px);
   }
 
   /*

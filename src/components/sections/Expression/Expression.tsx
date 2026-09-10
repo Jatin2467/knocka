@@ -254,7 +254,7 @@ export function Expression() {
       ref={sectionRef}
       id="expression"
       aria-labelledby="expression-title"
-      className="relative z-10 overflow-hidden px-[var(--container-gutter)] pt-[clamp(72px,10vh,132px)] pb-0"
+      className="relative z-10 overflow-hidden px-[var(--container-gutter)] pt-[clamp(48px,7vh,96px)] pb-0"
     >
       {/* Ambient purple/cyan wash. Painted gradients, never a blurred layer —
           a filter here would re-rasterise against the moving columns. */}
@@ -273,7 +273,7 @@ export function Expression() {
 
         <h2
           id="expression-title"
-          data-aos="knocka-rise"
+          data-aos="knocka-heading"
           className="mx-auto max-w-[15ch] font-display text-[clamp(32px,min(5.4vw,8vh),74px)]/[0.94] font-[900] tracking-[-0.042em] text-balance uppercase delay-[60ms]"
         >
           Your face. Your mood.{" "}
@@ -307,7 +307,7 @@ export function Expression() {
         ref={galleryRef}
         role="img"
         aria-label="Knocka avatars reacting — bored, sad, amused, thinking and vibing to music"
-        data-aos="knocka-rise"
+        data-aos="knocka-zoom"
         /*
           The gap under the copy was 55px, which read as the wall crowding the
           headline rather than sitting beneath it. It is now 100-150px on

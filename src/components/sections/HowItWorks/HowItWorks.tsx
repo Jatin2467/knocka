@@ -32,30 +32,25 @@ export function HowItWorks() {
     <section className="how" id="how" aria-labelledby="how-title">
       <div className="how-inner">
         <div className="how-head">
-          <motion.p
-            className="how-eyebrow"
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.6 }}
-            transition={{ duration: 0.7, ease: EASE_OUT }}
-          >
+          {/* The head is AOS (delay-* utilities stagger it, see aos.css);
+              the route and the cards below stay Framer, which owns their
+              transforms for the path draw and the zigzag entrance. */}
+          <p className="how-eyebrow" data-aos="knocka-rise">
             <span aria-hidden="true">✦</span> How it works
-          </motion.p>
+          </p>
 
-          <h2 className="how-title" id="how-title">
+          <h2
+            className="how-title delay-[80ms]"
+            id="how-title"
+            data-aos="knocka-heading"
+          >
             From a selfie to a knock,{" "}
             <span className="text-gradient">in five steps.</span>
           </h2>
 
-          <motion.p
-            className="how-lead"
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.1 }}
-          >
+          <p className="how-lead delay-[180ms]" data-aos="knocka-rise">
             No rig, no studio, no learning curve. One photo and you are in.
-          </motion.p>
+          </p>
         </div>
 
         <div className="how-track">

@@ -16,8 +16,6 @@ import { rooms } from "@/lib/site-config";
 import { RoomProgress } from "./RoomProgress";
 import { RoomScene } from "./RoomScene";
 
-const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-
 /**
  * How far the strip has to travel, as a fraction of its own width.
  *
@@ -111,15 +109,9 @@ export function Rooms() {
         takes over. Nothing is ever laid over it.
       */}
       <div className="rooms-intro">
-        <motion.p
-          className="rooms-eyebrow"
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.6 }}
-          transition={{ duration: 0.7, ease: EASE_OUT }}
-        >
+        <p className="rooms-eyebrow" data-aos="knocka-rise">
           <span aria-hidden="true">✦</span> Rooms
-        </motion.p>
+        </p>
 
         <h2 className="rooms-title" id="rooms-title">
           <TextReveal className="rooms-title-line" delay={0.05}>
@@ -130,16 +122,10 @@ export function Rooms() {
           </TextReveal>
         </h2>
 
-        <motion.p
-          className="rooms-lead"
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.3 }}
-        >
+        <p className="rooms-lead delay-[300ms]" data-aos="knocka-rise">
           Step in as your avatar — the room sets the mood, you bring the
           presence.
-        </motion.p>
+        </p>
       </div>
 
       <div className="rooms-runway" ref={runwayRef}>

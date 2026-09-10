@@ -25,6 +25,34 @@
 
 @layer components {
   .rooms {
+    /*
+      The strip's geometry lives on the section, not on the panel, because
+      three things read it: the panel's width, the strip's centring margin and
+      the runway's overlaps. Declared on .rooms-panel, the strip — the panel's
+      parent — could not see it, so the centring margin resolved to nothing
+      and the strip started flush left instead of with room one centred.
+    */
+    --room-panel: min(1120px, 78vw);
+    --room-ratio: 2.2857;
+
+    /* The pinned stage's padding: header clearance above, air below. */
+    --rooms-pad-top: clamp(84px, 11vh, 120px);
+    --rooms-pad-bottom: clamp(28px, 5vh, 56px);
+
+    /* Everything in the stage besides the frame: the room label, the grid
+       gap and the progress index. Measured at 83-98px from 390 to 1440 wide
+       and rounded up, so the overlaps below err on the side of air. */
+    --rooms-chrome: 100px;
+
+    /* The empty band above and below the centred content while pinned. */
+    --rooms-slack: max(
+      0px,
+      (
+          100svh - var(--rooms-pad-top) - var(--rooms-pad-bottom) -
+            var(--room-panel) / var(--room-ratio) - var(--rooms-chrome)
+        ) / 2
+    );
+
     position: relative;
     z-index: 10;
   }
@@ -39,7 +67,9 @@
   .rooms-intro {
     width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
     margin-inline: auto;
-    padding-block: clamp(64px, 8.5vh, 112px) clamp(40px, 6vh, 80px);
+    /* No bottom padding: the gap down to the strip is set by the runway's
+       top overlap (--rooms-lead-gap), not stacked on it. */
+    padding-block: clamp(40px, 6vh, 80px) 0;
     text-align: center;
   }
 
@@ -88,9 +118,30 @@
     220vh gives 120vh of travel across three rooms. The strategy caps any
     single section at 300vh; with the intro and the payoff the section lands
     under that.
+
+    The negative margins pull the neighbours into the stage's empty bands.
+    The stage is a full viewport tall with its content centred — right while
+    it is pinned, but it leaves --rooms-slack of nothing above and below the
+    strip. That read as two dead gaps: intro to strip on the way in, index to
+    the next section on the way out, measured at up to 400px on a tablet.
+    Margins move where the runway sits, never its height, so the pin, its
+    length and the scroll progress driving the strip are all unchanged.
   */
   .rooms-runway {
+    /* Lead line to strip, as it scrolls up and as the stage pins. */
+    --rooms-lead-gap: clamp(48px, 7vh, 88px);
+
     height: 220vh;
+    margin-top: calc(
+      -1 *
+        max(
+          0px,
+          var(--rooms-pad-top) + var(--rooms-slack) - var(--rooms-lead-gap)
+        )
+    );
+    margin-bottom: calc(
+      -1 * max(0px, var(--rooms-pad-bottom) + var(--rooms-slack) - 24px)
+    );
   }
 
   .rooms-stage {
@@ -104,7 +155,7 @@
     gap: clamp(20px, 2.6vh, 34px);
     /* No inline padding: the strip is full-bleed and clips itself. The index
        below it carries its own centred width. */
-    padding: clamp(84px, 11vh, 120px) 0 clamp(28px, 5vh, 56px);
+    padding: var(--rooms-pad-top) 0 var(--rooms-pad-bottom);
   }
 
   /* ---------- The strip ---------- */
@@ -134,10 +185,8 @@
     will-change: transform;
   }
 
+  /* --room-panel and --room-ratio come from .rooms — see there. */
   .rooms-panel {
-    --room-panel: min(1120px, 78vw);
-    --room-ratio: 2.2857;
-
     flex: none;
     width: var(--room-panel);
   }
@@ -333,7 +382,7 @@
     strip with nothing readable in it.
   */
   @media (max-width: 900px) {
-    .rooms-panel {
+    .rooms {
       --room-panel: min(660px, 86vw);
       --room-ratio: 1.7778;
     }
@@ -344,7 +393,7 @@
   }
 
   @media (max-width: 560px) {
-    .rooms-panel {
+    .rooms {
       --room-panel: 88vw;
       --room-ratio: 1.3333;
     }
@@ -358,8 +407,10 @@
     stops being a strip.
   */
   @media (prefers-reduced-motion: reduce) {
+    /* No pin, so no empty bands to overlap into. */
     .rooms-runway {
       height: auto;
+      margin-block: 0;
     }
 
     .rooms-stage {

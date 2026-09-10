@@ -12,9 +12,9 @@ import { useEffect } from "react";
  *
  * **No `aos/dist/aos.css`.** AOS's JavaScript only toggles two classes,
  * `aos-init` and `aos-animate`; every animation it ships is plain CSS keyed
- * off those. This page needs two reveals, both defined in styles/aos.css, so
- * importing the library's 26KB stylesheet to use a few percent of it would be
- * dead weight. The stagger uses Tailwind's own `delay-*` utilities instead of
+ * off those. This page needs four reveals — rise, heading, zoom and the footer
+ * wordmark — all defined in styles/aos.css, so importing the library's 26KB
+ * stylesheet to use a few percent of it would be dead weight. The stagger uses Tailwind's own `delay-*` utilities instead of
  * AOS's `data-aos-delay`, for the same reason.
  *
  * Reduced motion is handled by AOS's own `disable` hook, which strips the

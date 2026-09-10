@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import { EmailSignup } from "@/components/ui/EmailSignup";
 import { footerGroups, siteConfig, socialGroup } from "@/lib/site-config";
+import { scrollToTarget } from "@/lib/smooth-scroll";
 
 import { StoreBadges } from "./StoreBadges";
 
@@ -32,18 +33,11 @@ const TOP_LINK =
  * Still a client component, but only for the back-to-top handler — all four
  * reveals are AOS now, so framer-motion is gone from this file.
  *
- * The motion preference is read directly rather than through
- * `useReducedMotion`, which was the last thing pulling Framer in for a
- * one-line behaviour. Reading it at click time is also more correct: someone
- * can change the OS setting while the page is open.
+ * The climb goes through Lenis when it is running, so it eases like the
+ * wheel does; the reduced-motion fallback lives in lib/smooth-scroll.
  */
 export function Footer() {
-  const scrollToTop = () => {
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-  };
+  const scrollToTop = () => scrollToTarget(0);
 
   return (
     <footer className="relative z-10 px-[var(--container-gutter)] pt-[clamp(40px,6vw,80px)]">
@@ -69,7 +63,7 @@ export function Footer() {
             </p>
 
             {/* Field and button share one pill — see EmailSignup's `inline`
-                variant. It posts nowhere; wire it before launch. */}
+                variant. Posts to /api/waitlist like the invite banner. */}
             <div className="mt-[clamp(24px,2.6vw,32px)] max-w-[360px]">
               <span className="mb-3 block text-[10px] font-[500] tracking-[0.24em] text-[rgba(255,255,255,0.34)] uppercase">
                 Join the waitlist
@@ -77,7 +71,7 @@ export function Footer() {
               <EmailSignup
                 variant="inline"
                 label="Your email address"
-                buttonLabel="Send →"
+                buttonLabel="Send"
               />
             </div>
 

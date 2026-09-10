@@ -5,7 +5,8 @@
 
      1. tokens      design tokens + Tailwind theme (@theme)
      2. base        reset and document defaults   (@layer base)
-     3. utilities   the one primitive Tailwind cannot express
+     3. utilities   the one primitive Tailwind cannot express,
+                    plus the layered button hover (button.css)
      4. components  header, hero, sections, footer
      5. sections    styles reserved for unbuilt sections
 
@@ -46,6 +47,7 @@
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 @import "../styles/utilities.css";
+@import "../styles/button.css";
 @import "../styles/site-header.css";
 @import "../styles/hero.css";
 @import "../styles/arrival.css";

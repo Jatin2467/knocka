@@ -28,7 +28,9 @@
   .how-inner {
     width: min(var(--stage-max), calc(100% - 2 * var(--container-gutter)));
     margin-inline: auto;
-    padding-block: clamp(80px, 11vh, 150px);
+    /* Asymmetric: the cards' tilt already hangs past the track's bottom
+       edge, and Rooms' intro opens with padding of its own. */
+    padding-block: clamp(56px, 8vh, 112px) clamp(40px, 6vh, 88px);
   }
 
   /* ---------- Head ---------- */

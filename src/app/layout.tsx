@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 
 import { Aos } from "@/components/animation/Aos";
+import { SmoothScroll } from "@/components/animation/SmoothScroll";
 import { siteConfig } from "@/lib/site-config";
 
 import "./globals.css";
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <style>{NOSCRIPT_REVEAL}</style>
         </noscript>
         {children}
+        <SmoothScroll />
         <Aos />
       </body>
     </html>

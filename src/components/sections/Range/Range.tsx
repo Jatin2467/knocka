@@ -71,7 +71,8 @@ function RevealLine({
  * **Not pinned, and nothing here is scroll-linked.** This section is the
  * pacing relief between two pinned sequences (S2 above, Rooms below) and it
  * has to stay that way: no `sticky`, no scroll container, no `useScroll`.
- * Every entrance is a one-shot `whileInView`, the band is a CSS marquee, and
+ * Every entrance is one-shot — AOS for the eyebrow and lead, `whileInView`
+ * for the masked title and the profiles — the band is a CSS marquee, and
  * hover is a CSS transition — so the only continuous work on the page is
  * still the DNA canvas.
  *
@@ -85,15 +86,9 @@ export function Range() {
       <div className="range-inner">
         <div className="knock-stage">
           <div className="knock-head">
-            <motion.p
-              className="knock-eyebrow"
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.6 }}
-              transition={{ duration: 0.7, ease: EASE_OUT }}
-            >
+            <p className="knock-eyebrow" data-aos="knocka-rise">
               <span aria-hidden="true">✦</span> Avatar messaging
-            </motion.p>
+            </p>
 
             <h1 className="knock-title" id="range-title">
               <RevealLine delay={0.04} reduceMotion={reduceMotion}>
@@ -135,16 +130,10 @@ export function Range() {
           </div>
 
           <div className="knock-tail">
-            <motion.p
-              className="knock-lead"
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.5 }}
-              transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.1 }}
-            >
+            <p className="knock-lead delay-[100ms]" data-aos="knocka-rise">
               Pick a face, say it out loud, and knock. They feel it on their
               phone — that is the whole difference.
-            </motion.p>
+            </p>
 
             <KnockMarks offset={0.5} />
           </div>

@@ -1,15 +1,31 @@
 "use client";
 
-import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import {
+  motion,
+  useReducedMotion,
+  useSpring,
+  type HTMLMotionProps,
+} from "framer-motion";
+import type { PointerEvent, ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "ghost";
 export type ButtonSize = "md" | "lg";
 
-export interface ButtonProps extends HTMLMotionProps<"button"> {
+export interface ButtonProps
+  extends Omit<HTMLMotionProps<"button">, "children"> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  children?: ReactNode;
+  /** A trailing arrow that slides out and back in on hover. */
+  arrow?: boolean;
+  /**
+   * Lean toward the pointer. Turn it off for a button that sits inside
+   * another control's outline — the footer's inline field — where drifting
+   * would push it into the pill's edge.
+   */
+  magnetic?: boolean;
 }
 
 /**
@@ -21,15 +37,22 @@ export interface ButtonProps extends HTMLMotionProps<"button"> {
  * `border-width: 0`, and adding a border-style utility on the base would put
  * it in a fight with the ghost variant's border that stylesheet order, not
  * the className order, would settle.
+ *
+ * `transform` is deliberately absent from the transition list: framer writes
+ * the magnetic pull every frame, and a CSS transition on the same property
+ * would re-ease each of those writes and make the button trail the pointer.
+ *
+ * `btn`, `btn-primary` and `btn-ghost` carry no styles of their own here —
+ * they are the hooks for the layered hover in styles/button.css.
  */
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-control " +
+  "btn relative isolate inline-flex items-center justify-center gap-2 rounded-control " +
   "font-medium text-text-primary whitespace-nowrap no-underline " +
-  "transition-[transform,box-shadow,border-color,background-color] duration-200 ease-[ease]";
+  "transition-[box-shadow,border-color,background-color] duration-200 ease-[ease]";
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "bg-[image:var(--gradient-brand)]",
-  ghost: "bg-glass-strong border border-border-glass",
+  primary: "btn-primary bg-[image:var(--gradient-brand)]",
+  ghost: "btn-ghost bg-glass-strong border border-border-glass",
 };
 
 /**
@@ -55,17 +78,84 @@ const VARIANT_PADDING: Record<ButtonVariant, string> = {
 };
 
 /**
- * The tactile press lives in the primitive so every CTA in the page reacts
- * the same way: a short lift on hover, a firm compression on press.
+ * The magnetic pull: the button follows this fraction of the pointer's
+ * distance from its centre, capped so a wide button never wanders. Small on
+ * purpose — it should feel like the button noticed you, not like it moved.
+ */
+const MAGNET_PULL = 0.2;
+const MAGNET_MAX = 6;
+const MAGNET_SPRING = { stiffness: 320, damping: 22, mass: 0.5 };
+
+const pull = (distance: number) =>
+  Math.max(-MAGNET_MAX, Math.min(MAGNET_MAX, distance * MAGNET_PULL));
+
+function ArrowGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M3 8h10M9 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The tactile layer lives in the primitive so every CTA on the page reacts
+ * the same way: a slight magnetic lean toward the pointer, a firm compression
+ * on press, and the hover in styles/button.css — a label roll, an arrow swap
+ * and a spotlight that follows the cursor.
+ *
+ * The spotlight position is written straight to CSS custom properties on the
+ * element, so tracking the pointer never re-renders React.
  */
 export function Button({
   variant = "primary",
   size = "md",
+  arrow = false,
+  magnetic = true,
   className,
   type = "button",
+  style,
+  children,
+  onPointerMove,
+  onPointerLeave,
   ...props
 }: ButtonProps) {
   const reduceMotion = useReducedMotion();
+  const x = useSpring(0, MAGNET_SPRING);
+  const y = useSpring(0, MAGNET_SPRING);
+  const canPull = magnetic && !reduceMotion;
+
+  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    onPointerMove?.(event);
+    const button = event.currentTarget;
+    const box = button.getBoundingClientRect();
+    const px = event.clientX - box.left;
+    const py = event.clientY - box.top;
+    button.style.setProperty("--mx", `${px}px`);
+    button.style.setProperty("--my", `${py}px`);
+
+    // Mouse only: on touch there is no hover to lean into, and the pull
+    // would just nudge the button under a finger that is already on it.
+    if (canPull && event.pointerType === "mouse") {
+      x.set(pull(px - box.width / 2));
+      y.set(pull(py - box.height / 2));
+    }
+  };
+
+  const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
+    onPointerLeave?.(event);
+    x.set(0);
+    y.set(0);
+  };
+
+  // The roll needs an exact duplicate of the label, which only plain text
+  // can guarantee. Anything richer renders as-is, without the roll.
+  const rolls = typeof children === "string";
 
   return (
     <motion.button
@@ -77,10 +167,31 @@ export function Button({
         SIZE_CLASS[size],
         className,
       )}
-      whileHover={reduceMotion ? undefined : { y: -2 }}
-      whileTap={reduceMotion ? undefined : { scale: 0.97, y: 0 }}
+      style={{ x, y, ...style }}
+      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
       transition={{ type: "spring", stiffness: 420, damping: 26, mass: 0.6 }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
       {...props}
-    />
+    >
+      <span className="btn-glow" aria-hidden="true" />
+
+      {rolls ? (
+        <span className="btn-label">
+          <span>{children}</span>
+          {/* Hidden from assistive tech, so the name is read once. */}
+          <span aria-hidden="true">{children}</span>
+        </span>
+      ) : (
+        children
+      )}
+
+      {arrow && (
+        <span className="btn-arrow" aria-hidden="true">
+          <ArrowGlyph />
+          <ArrowGlyph />
+        </span>
+      )}
+    </motion.button>
   );
 }

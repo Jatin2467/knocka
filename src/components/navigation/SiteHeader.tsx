@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { activeNavLinks, siteConfig } from "@/lib/site-config";
+import { scrollToTarget } from "@/lib/smooth-scroll";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -78,27 +79,16 @@ export function SiteHeader() {
 
   /**
    * The CTAs are buttons, not links — a `<button>` inside an `<a>` is invalid
-   * markup — so they scroll themselves. `scrollIntoView` honours the
-   * `scroll-margin-top` in base.css, which is what keeps the target's heading
-   * clear of this bar. The nav links above stay real anchors: they are
-   * navigation and should behave like it with JS off.
-   *
-   * The motion preference is read at click time rather than through
-   * `useReducedMotion`, because someone can change the OS setting while the
-   * page is open.
+   * markup — so they scroll themselves, through Lenis when it is running
+   * (see lib/smooth-scroll). Both paths honour the `scroll-margin-top` in
+   * base.css, which is what keeps the target's heading clear of this bar. The
+   * nav links above stay real anchors: they are navigation and should behave
+   * like it with JS off.
    */
   const jumpTo = useCallback(
     (hash: string) => {
-      const target = document.querySelector(hash);
-      if (!target) return;
       closeMenu();
-      const reduce = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      target.scrollIntoView({
-        behavior: reduce ? "auto" : "smooth",
-        block: "start",
-      });
+      scrollToTarget(hash);
     },
     [closeMenu],
   );
@@ -195,9 +185,10 @@ export function SiteHeader() {
           <Button
             variant="primary"
             className="upto-760:px-4 upto-760:py-[9px]"
+            arrow
             onClick={() => jumpTo("#newsletter")}
           >
-            Join Waitlist →
+            Join Waitlist
           </Button>
         </div>
 
@@ -249,9 +240,10 @@ export function SiteHeader() {
               <Button
                 variant="primary"
                 className="w-full"
+                arrow
                 onClick={() => jumpTo("#newsletter")}
               >
-                Join Waitlist →
+                Join Waitlist
               </Button>
             </div>
           </motion.div>

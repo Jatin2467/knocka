@@ -1,7 +1,7 @@
 /* ============================================================
    AOS REVEALS
 
-   The only two AOS animations this page uses. AOS's JavaScript
+   Every AOS animation this page uses. AOS's JavaScript
    contributes nothing but the `aos-init` / `aos-animate` class
    toggles; the movement is all here, so the library's own
    stylesheet is never imported.
@@ -68,6 +68,47 @@
   }
 
   [data-aos="knocka-wordmark"].aos-init.aos-animate {
+    opacity: 1;
+    transform: none;
+  }
+
+  /*
+    Section headings: a longer rise that comes into focus as it lands.
+
+    The blur is the one filter this file allows, and only because it is
+    one-shot and settles on `filter: none` — nothing stays filtered once the
+    reveal is over, so the DNA canvas behind it pays for one second, once.
+    Never put this on anything that moves continuously.
+  */
+  [data-aos="knocka-heading"].aos-init {
+    opacity: 0;
+    transform: translate3d(0, 34px, 0);
+    filter: blur(10px);
+    transition-property: opacity, transform, filter;
+    transition-duration: 1100ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  [data-aos="knocka-heading"].aos-init.aos-animate {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  /*
+    Large surfaces — the expression wall, the invite panel. They settle up
+    and in from slightly smaller, which reads as the surface arriving rather
+    than as a block of content sliding. Kept to 4% so the edges barely move.
+  */
+  [data-aos="knocka-zoom"].aos-init {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0) scale(0.96);
+    transition-property: opacity, transform;
+    transition-duration: 1200ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  [data-aos="knocka-zoom"].aos-init.aos-animate {
     opacity: 1;
     transform: none;
   }
