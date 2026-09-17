@@ -23,9 +23,10 @@
 
    WHAT MOVES, AND ON WHICH ELEMENT
    Framer owns `.knock-profile`'s transform for the entrance, so
-   hover lives one level down on `.knock-plate` — an inline
-   transform from framer would win over any `:hover` rule on the
-   same element.
+   the hover transform lives one level down on `.knock-body` — an
+   inline transform from framer would win over any `:hover` rule
+   on the same element. The profile itself only straightens its
+   `rotate`, a separate property framer never writes.
 
    Nothing that moves carries a filter: the DNA canvas repaints
    behind this section and a blur or a drop shadow on a moving
@@ -261,10 +262,17 @@
     display: block;
     width: 100%;
     border: 1px solid var(--ring);
+    border-radius: inherit;
     background: var(--tint);
+    /* The halo the knock leaves behind — see the hover rules. An outline
+       follows the border radius and is never clipped by the bubble's own
+       overflow: hidden. */
+    outline: 2px solid transparent;
+    outline-offset: 0;
     transition:
-      transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 0.45s ease;
+      border-color 0.4s ease,
+      outline-color 0.4s ease,
+      outline-offset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .knock-profile[data-kind="card"] .knock-plate {
@@ -278,13 +286,37 @@
     border-radius: 50%;
   }
 
+  /* The frame the artwork is positioned in. On a bubble it is simply the
+     circle; on a card it is the clip described below. */
+  .knock-cutout {
+    position: absolute;
+    inset: 0;
+  }
+
   /*
-    Cards: the artwork is NOT clipped. It is pinned to the bottom of the
-    plate and drawn wider than it, so the head clears the top edge and the
-    torso is cut off by the plate's own bottom — which is exactly where the
-    source images end anyway. --img-w is tuned per image; the two sources
-    have different aspect ratios and different amounts of air around the
-    subject, so one number cannot serve both.
+    Cards: clipped on three sides, open on the fourth. The frame matches the
+    plate's sides and bottom (and its rounded bottom corners) but reaches a
+    full plate-height above it, so the head still breaks out over the top
+    while shoulders drawn wider than the plate — Arjun's art is 142% of it —
+    stop at the plate's edge instead of spilling past it. The clip is on this
+    frame, not on the plate, so the plate's halo outline is never cut.
+  */
+  .knock-profile[data-kind="card"] .knock-cutout {
+    top: -100%;
+    overflow: hidden;
+    /* The plate's radius less its 1px border: the frame sits inside the
+       border, so its corners have to curve on the inner edge. */
+    border-radius: 0 0 calc(clamp(14px, 1.5vw, 22px) - 1px)
+      calc(clamp(14px, 1.5vw, 22px) - 1px);
+  }
+
+  /*
+    The artwork is pinned to the bottom of the plate and drawn wider than it,
+    so the head clears the top edge and the torso is cut off by the plate's
+    own bottom — which is exactly where the source images end anyway. --img-w
+    is tuned per image; the two sources have different aspect ratios and
+    different amounts of air around the subject, so one number cannot serve
+    both.
   */
   .knock-profile[data-kind="card"] .knock-art {
     position: absolute;
@@ -382,18 +414,201 @@
 
   /* ---------- Hover: one steps forward, the room steps back ---------- */
 
+  /*
+    Everything that belongs to one person moves as one. The plate, the
+    avatar and the name tag share .knock-body, and every hover transform is
+    on that — the old hover lifted the plate alone and left the name tag
+    where it was, which is what made the two read as separate objects.
+
+    Range.tsx writes --px / --py: the pointer's position over the profile,
+    0 to 1 on each axis, on pointermove and only for a mouse. The tilt, the
+    parallax and the light are all derived from those two numbers here, so
+    nothing re-renders and nothing runs per frame.
+
+    Depth comes from three layers moving by different amounts: the plate
+    tilts (the side under the pointer dips away), the avatar slides 12px
+    toward the pointer and the name tag 18px — nearer things move further.
+  */
+  .knock-body {
+    position: relative;
+    display: block;
+    /* Keeps the ripples' z-index: -1 inside this profile, behind its own
+       plate, instead of behind the whole stage. */
+    isolation: isolate;
+    border-radius: inherit;
+    transition:
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      filter 0.45s ease;
+  }
+
+  .knock-profile[data-kind="card"] {
+    --pop: 1.08;
+    --ripple: 1.2;
+
+    border-radius: clamp(14px, 1.5vw, 22px);
+  }
+
+  .knock-profile[data-kind="bubble"] {
+    --pop: 1.14;
+    --ripple: 1.5;
+
+    border-radius: 50%;
+  }
+
+  /* Cards grow from their feet, so the head rises further out of the frame
+     instead of the body swelling from the middle. */
+  .knock-art {
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .knock-profile[data-kind="card"] .knock-art {
+    transform-origin: 50% 100%;
+  }
+
+  /* The knock: two rings in the person's own colour, one beat apart. They
+     sit behind the plate, so they are only ever seen leaving its edge. */
+  .knock-body::before,
+  .knock-body::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 2px solid var(--ring);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Light that follows the pointer across the plate, like glare on glass.
+     A painted gradient whose only animated property is opacity. */
+  .knock-plate::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at calc(var(--px, 0.5) * 100%) calc(var(--py, 0.5) * 100%),
+      rgba(255, 255, 255, 0.3),
+      transparent 58%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  .knock-profile[data-kind="card"] .knock-name {
+    transition:
+      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.4s ease,
+      border-color 0.4s ease;
+  }
+
+  .knock-name span {
+    transition: color 0.4s ease;
+  }
+
+  /* Not motion, so these hold under reduced motion too. */
+  .knock-profile:hover {
+    z-index: 5;
+  }
+
+  /* The rings pulse out and one stays: a halo in the person's own colour,
+     so the knock ends on "this one is selected" rather than on nothing. */
   .knock-profile:hover .knock-plate {
-    transform: translateY(-10px) scale(1.035);
+    border-color: rgba(255, 255, 255, 0.6);
+    outline-color: var(--ring);
+    outline-offset: 5px;
+  }
+
+  .knock-profile:hover .knock-plate::after {
+    opacity: 1;
+  }
+
+  .knock-profile[data-kind="card"]:hover .knock-name {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(8, 5, 14, 0.74);
+  }
+
+  .knock-profile:hover .knock-name span {
+    color: rgba(255, 255, 255, 0.92);
   }
 
   /*
     `:has()` is what makes this a CSS-only interaction — no hover state in
     React, no re-render, nothing measured.
+
+    Darkened, not faded. At half opacity the band and the DNA field showed
+    straight through the faces, so the room read as ghosts rather than as
+    people stepping back. The filter is only ever on profiles standing still
+    — the one that moves is the hovered one, which never carries it — so the
+    rule at the top of this file (no filters on moving layers) holds.
   */
   .knock-stage:has(.knock-profile:hover)
     .knock-profile:not(:hover)
-    .knock-plate {
-    opacity: 0.5;
+    .knock-body {
+    filter: brightness(0.42) saturate(0.75);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .knock-profile {
+      --tilt: 14deg;
+
+      transition: rotate 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .knock-body {
+      transform: perspective(800px)
+        rotateX(calc((0.5 - var(--py, 0.5)) * var(--tilt)))
+        rotateY(calc((var(--px, 0.5) - 0.5) * var(--tilt)))
+        translateY(var(--lift, 0px)) scale(var(--grow, 1));
+    }
+
+    /* The profile stands up straight to meet the pointer. */
+    .knock-profile:hover {
+      rotate: 0deg;
+    }
+
+    .knock-profile:hover .knock-body {
+      --lift: -8px;
+      --grow: 1.04;
+    }
+
+    .knock-profile:hover .knock-art {
+      transform: translate3d(
+          calc((var(--px, 0.5) - 0.5) * 12px),
+          calc((var(--py, 0.5) - 0.5) * 8px),
+          0
+        )
+        scale(var(--pop));
+    }
+
+    .knock-profile[data-kind="card"]:hover .knock-name {
+      transform: translate3d(
+        calc((var(--px, 0.5) - 0.5) * 18px),
+        calc((var(--py, 0.5) - 0.5) * 12px - 3px),
+        0
+      );
+    }
+
+    .knock-profile:hover .knock-body::before {
+      animation: knock-ripple 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .knock-profile:hover .knock-body::after {
+      animation: knock-ripple 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+  }
+
+  @keyframes knock-ripple {
+    from {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(var(--ripple));
+    }
   }
 
   /* ---------- The narrow composition ---------- */
@@ -487,13 +702,8 @@
       will-change: auto;
     }
 
-    .knock-plate {
-      transition: opacity 0.3s ease;
-    }
-
-    .knock-profile:hover .knock-plate {
-      transform: none;
-    }
+    /* The hover's movement is all inside a no-preference query above;
+       what is left here is the light and the room stepping back. */
   }
 
   /*

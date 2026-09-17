@@ -48,9 +48,11 @@
 @import "../styles/base.css";
 @import "../styles/utilities.css";
 @import "../styles/button.css";
+@import "../styles/back-to-top.css";
 @import "../styles/site-header.css";
 @import "../styles/hero.css";
 @import "../styles/arrival.css";
+@import "../styles/film.css";
 @import "../styles/range.css";
 @import "../styles/how.css";
 @import "../styles/rooms.css";

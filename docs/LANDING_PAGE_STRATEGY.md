@@ -553,9 +553,9 @@ labelling** above. Do not redesign it in this phase.
 | `branding/knocka-logo.svg` | Header, Footer | 55KB optimized. Original kept as `.original.svg` |
 | `branding/knocka-avatar-logo.png` | S1 Hero | Also the S3 fallback. Do not reuse at large scale elsewhere — repetition costs it its power |
 | `videos/Knocka-Welcome-Dark-optimized.mp4` | **S2 only** | 1440x1080 (4:3), ~5s. Still unused and never requested. S2's frame is authored at its ratio; approving it is a one-object change |
-| `videos/coffee-shop.mp4` | S4 room 01 | Built |
-| `videos/disco-club.mp4` | S4 room 02 | Built |
-| `videos/ice-cream-shop.mp4` | S4 room 03 | Built |
+| `videos/Coffee-Shop1.mp4` | S4 room 01 | Built |
+| `videos/Disco-Club1.mp4` | S4 room 02 | Built |
+| `videos/Ice-Cream-Shop1.mp4` | S4 room 03 | Built |
 | DNA canvas | Global, modulated | Full in S1/S6, **hidden then restored in S2**, tinted in S4, quiet in S3/S5 |
 
 **Two video-bearing sections total (S2, S4). That is the ceiling.** Adding a

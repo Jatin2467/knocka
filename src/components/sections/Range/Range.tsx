@@ -2,12 +2,42 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 
 import { KnockMarks } from "./KnockMarks";
 import { CAST, STEPS } from "./cast";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+/**
+ * Where the pointer is over a profile, 0 to 1 on each axis, written as
+ * --px / --py. range.css derives the tilt, the parallax and the light from
+ * these two numbers, so hover never re-renders React.
+ *
+ * Mouse only: on touch there is no pointer to follow, and the tap still gets
+ * the CSS :hover state (lift, knock rings, light) without a tilt.
+ */
+function trackPointer(event: PointerEvent<HTMLDivElement>) {
+  if (event.pointerType !== "mouse") return;
+  const profile = event.currentTarget;
+  const box = profile.getBoundingClientRect();
+  profile.style.setProperty(
+    "--px",
+    clamp01((event.clientX - box.left) / box.width).toFixed(3),
+  );
+  profile.style.setProperty(
+    "--py",
+    clamp01((event.clientY - box.top) / box.height).toFixed(3),
+  );
+}
+
+/** Back to centre, so the tilt eases out rather than freezing mid-lean. */
+function releasePointer(event: PointerEvent<HTMLDivElement>) {
+  event.currentTarget.style.removeProperty("--px");
+  event.currentTarget.style.removeProperty("--py");
+}
 
 /**
  * The site's masked line reveal, triggered on view rather than on mount.
@@ -73,8 +103,8 @@ function RevealLine({
  * has to stay that way: no `sticky`, no scroll container, no `useScroll`.
  * Every entrance is one-shot — AOS for the eyebrow and lead, `whileInView`
  * for the masked title and the profiles — the band is a CSS marquee, and
- * hover is a CSS transition — so the only continuous work on the page is
- * still the DNA canvas.
+ * hover is CSS driven by two pointer variables — so the only continuous work
+ * on the page is still the DNA canvas.
  *
  * See `cast.ts` for the two compositions and the six colours.
  */
@@ -169,22 +199,30 @@ export function Range() {
                 ease: EASE_OUT,
                 delay: reduceMotion ? 0 : profile.delay,
               }}
+              onPointerMove={trackPointer}
+              onPointerLeave={releasePointer}
             >
-              <span className="knock-plate">
-                <Image
-                  className="knock-art"
-                  src={profile.src}
-                  alt={`${profile.name} — ${profile.mood.toLowerCase()}`}
-                  width={profile.w}
-                  height={profile.h}
-                  sizes="(max-width: 760px) 40vw, 20vw"
-                />
-              </span>
+              {/* One body for the plate and its name tag, so the hover moves
+                  them together — see range.css. */}
+              <div className="knock-body">
+                <span className="knock-plate">
+                  <span className="knock-cutout">
+                    <Image
+                      className="knock-art"
+                      src={profile.src}
+                      alt={`${profile.name} — ${profile.mood.toLowerCase()}`}
+                      width={profile.w}
+                      height={profile.h}
+                      sizes="(max-width: 760px) 40vw, 20vw"
+                    />
+                  </span>
+                </span>
 
-              <p className="knock-name">
-                <b>{profile.name}</b>
-                <span>{profile.mood}</span>
-              </p>
+                <p className="knock-name">
+                  <b>{profile.name}</b>
+                  <span>{profile.mood}</span>
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>

@@ -15,7 +15,7 @@ import { arrivalMedia } from "@/lib/site-config";
 
 import { ArrivalMedia } from "./ArrivalMedia";
 import { ConversationThread } from "./ConversationThread";
-import { KNOCK_PULSE, SCORE } from "./score";
+import { SCORE } from "./score";
 
 /**
  * S2 — THE FLAT -> THE ARRIVAL.
@@ -53,7 +53,7 @@ export function Arrival() {
     * counting from its first frame, not from the scroll position that asked
     * for it.
     */
-  const [hasKnocked, setHasKnocked] = useState(false);
+  const [, setHasKnocked] = useState(false);
 
   // Generous margin so the video has downloaded before the arrival beat
   // needs it — it is 1.5MB and the knock has to land on time.
@@ -130,10 +130,6 @@ export function Arrival() {
   const closerOpacity = useTransform(progress, SCORE.closer, [0, 1]);
   const closerY = useTransform(progress, SCORE.closer, [16, 0]);
 
-  const knockPulse = hasKnocked && !isStatic;
-  const pulseTransition = knockPulse
-    ? { duration: KNOCK_PULSE.duration, times: KNOCK_PULSE.times }
-    : { duration: 0.2 };
 
   return (
     <section className="arrival" id="arrival" aria-labelledby="arrival-title">
@@ -227,13 +223,7 @@ export function Arrival() {
                   cannot take a transform from a motion value and from a
                   keyframe animation at the same time.
                 */}
-                <motion.div
-                  className="arrival-frame"
-                  animate={
-                    knockPulse ? { scale: [1, 1.028, 1, 1, 1.028, 1] } : { scale: 1 }
-                  }
-                  transition={pulseTransition}
-                >
+             
                   <ArrivalMedia
                     isArmed={isNear}
                     isPlaying={isOnScreen && hasArrived}
@@ -243,16 +233,7 @@ export function Arrival() {
 
                   {/* Static geometry, opacity only: the edge light for each
                       hit, on the same impulse track as the frame kick. */}
-                  <motion.span
-                    className="arrival-flash"
-                    aria-hidden="true"
-                    animate={
-                      knockPulse ? { opacity: [0, 1, 0, 0, 1, 0] } : { opacity: 0 }
-                    }
-                    transition={pulseTransition}
-                  />
-
-                </motion.div>
+                
               </motion.div>
             </div>
           </div>

@@ -35,6 +35,8 @@ export const navLinks: readonly PrimaryNavLink[] = [
   // S2, the flat-to-arrival sequence. It was labelled "Flow & Motivi", which
   // was never resolved with the client and told a visitor nothing.
   { label: "Why Knocka", href: "#arrival", ready: true },
+  // The film sits between the argument (S2) and the how-to.
+  { label: "Watch", href: "#film", ready: true },
   { label: "How it works", href: "#how", ready: true },
   { label: "Rooms", href: "#rooms", ready: true },
   { label: "Expressions", href: "#expression", ready: true },
@@ -107,7 +109,7 @@ export const rooms: readonly Room[] = [
     ordinal: "01",
     name: "Coffee shop",
     line: "Slow conversations.",
-    video: "/videos/coffee-shop.mp4",
+    video: "/videos/Coffee-Shop1.mp4",
     glow: "168, 85, 247",
   },
   {
@@ -115,7 +117,7 @@ export const rooms: readonly Room[] = [
     ordinal: "02",
     name: "Disco club",
     line: "Turn the moment up.",
-    video: "/videos/disco-club.mp4",
+    video: "/videos/Disco-Club1.mp4",
     glow: "236, 72, 153",
   },
   {
@@ -123,10 +125,64 @@ export const rooms: readonly Room[] = [
     ordinal: "03",
     name: "Ice cream shop",
     line: "Just hanging out.",
-    video: "/videos/ice-cream-shop.mp4",
+    video: "/videos/Ice-Cream-Shop1.mp4",
     glow: "56, 189, 248",
   },
 ];
+
+/* ---------------------------------------------------------------
+   The film — the 30-second story, between S2 and How it works
+--------------------------------------------------------------- */
+
+export interface FilmChapter {
+  readonly title: string;
+  readonly line: string;
+  /** Seconds into the film where this chapter begins. */
+  readonly start: number;
+}
+
+/**
+ * The Knocka story film.
+ *
+ * `chapters` are read off the cut itself, not the script: the script's scene
+ * timings drifted in the edit (the pulse lands at 0:05, not 0:04; the knock
+ * starts at 0:12, not 0:09; the reply scene was cut). If the film is
+ * re-edited, re-check these against a frame per second.
+ *
+ * The poster is the 0:12.5 frame — the knock on the glass with the three
+ * open options, which is the whole product in one image.
+ */
+export const storyFilm = {
+  src: "/Knocka-Story-Video1.mp4",
+  poster: "/film/knocka-film-poster.jpg",
+  /** The source is 1024x768. */
+  ratio: "4 / 3",
+  /** Seconds. Replaced by the file's own duration once metadata loads. */
+  duration: 29.4,
+  alt: "The Knocka film: Jessica sends her good news as a Knocka, and her avatar knocks on her friend's screen to tell him herself.",
+  chapters: [
+    {
+      title: "Send",
+      line: "Jessica gets the job. Her avatar is as excited as she is.",
+      start: 0,
+    },
+    {
+      title: "Travel",
+      line: "The message leaves as a Knocka and lands on his phone.",
+      start: 5,
+    },
+    {
+      title: "Knock",
+      line: "Her avatar knocks from inside his screen. He picks Experience.",
+      start: 12,
+    },
+    {
+      title: "Arrive",
+      line: "She tells him herself — and they celebrate together.",
+      start: 18,
+    },
+  ] satisfies readonly FilmChapter[],
+} as const;
 
 /* ---------------------------------------------------------------
    S2 — The Flat -> The Arrival
@@ -180,24 +236,18 @@ export type ArrivalMediaSource =
 /**
  * What arrives in S2's frame.
  *
- * RESOLVED: the client asked for the welcome video here, so open question 1
- * ("no welcome video" meaning not-in-the-hero, or nowhere) is answered — it
- * belongs in S2's frame, with sound.
+ * The client replaced the knocking welcome video with the transparent
+ * Knocka avatar logo. With a still image, the knock pulse fires at the
+ * scroll threshold (see score.ts).
  *
- * `ratio` is not decoration. The frame was authored at 4:3 on the assumption
- * that the welcome video was 1440x1080; it is actually **1440x1440**, square.
- * The frame follows this value, so the media and its container can never
- * disagree again.
- *
- * `knockBeats` are measured, not chosen. The audio track has six knock
- * transients at 0.39, 0.77, 1.04, 1.30, 1.64 and 1.96 seconds; the two marks
- * ride the first two, so the typography lands on real hits instead of running
- * a rhythm of its own beside them.
+ * `ratio` is the frame's shape, not the asset's: the logo (615x512) is
+ * contained inside a square frame.
  */
 export const arrivalMedia: ArrivalMediaSource = {
-  kind: "video",
-  src: "/videos/Knocka-Welcome-Dark-optimized.mp4",
-  alt: "A Knocka avatar knocking to arrive through a message frame",
+  kind: "image",
+  src: "/branding/knocka-avatar-logo.png",
+  alt: "The Knocka avatar arriving through a message frame",
   ratio: "1 / 1",
-  knockBeats: [0.39, 0.77],
+  width: 615,
+  height: 512,
 };

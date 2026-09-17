@@ -1,10 +1,7 @@
-"use client";
-
 import Image from "next/image";
 
 import { EmailSignup } from "@/components/ui/EmailSignup";
 import { footerGroups, siteConfig, socialGroup } from "@/lib/site-config";
-import { scrollToTarget } from "@/lib/smooth-scroll";
 
 import { StoreBadges } from "./StoreBadges";
 
@@ -22,23 +19,13 @@ const LINK =
   "group inline-block text-[14px] text-text-secondary no-underline " +
   "transition-[color] duration-[220ms] ease-[ease] interact:text-text-primary";
 
-const TOP_LINK =
-  "group inline-flex items-center gap-2.5 rounded-pill border border-border-subtle " +
-  "bg-transparent px-4 py-[9px] text-[13px] text-[rgba(255,255,255,0.55)] " +
-  "transition-[color,border-color,background-color] duration-[220ms] ease-[ease] " +
-  "interact:border-border-accent interact:bg-[rgba(168,85,247,0.1)] interact:text-text-primary " +
-  "upto-560:justify-center upto-560:self-stretch";
-
 /**
- * Still a client component, but only for the back-to-top handler — all four
- * reveals are AOS now, so framer-motion is gone from this file.
- *
- * The climb goes through Lenis when it is running, so it eases like the
- * wheel does; the reduced-motion fallback lives in lib/smooth-scroll.
+ * A server component: every reveal is AOS, and the only interactive parts —
+ * the email field and the store badges — are client components of their
+ * own. Back-to-top used to sit in the bottom row; it is now the floating
+ * BackToTop control, reachable from anywhere below the hero.
  */
 export function Footer() {
-  const scrollToTop = () => scrollToTarget(0);
-
   return (
     <footer className="relative z-10 px-[var(--container-gutter)] pt-[clamp(40px,6vw,80px)]">
       {/* The panel keeps its stylesheet rule: it owns --footer-pad, which the
@@ -124,15 +111,6 @@ export function Footer() {
           className="mt-[clamp(36px,4.5vw,60px)] flex flex-wrap items-center justify-between gap-x-7 gap-y-4 border-t border-t-border-faint pt-[22px] text-[13px] text-[rgba(255,255,255,0.4)] delay-[140ms] upto-560:flex-col upto-560:items-start"
         >
           <p>© {new Date().getFullYear()} Knocka. All rights reserved.</p>
-          <button type="button" className={TOP_LINK} onClick={scrollToTop}>
-            Back to top
-            <span
-              className="transition-[transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-[3px] group-focus-visible:-translate-y-[3px]"
-              aria-hidden="true"
-            >
-              ↑
-            </span>
-          </button>
         </div>
 
         {/*

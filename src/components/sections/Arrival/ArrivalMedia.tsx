@@ -167,7 +167,7 @@ export function ArrivalMedia({
       // Intrinsic size of the asset. Display size comes from CSS.
       width={arrivalMedia.width}
       height={arrivalMedia.height}
-      sizes="(max-width: 560px) 76vw, (max-width: 900px) 60vw, 460px"
+      sizes="(max-width: 560px) 90vw, (max-width: 900px) 70vw, 620px"
     />
   );
 }

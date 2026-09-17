@@ -1173,7 +1173,7 @@ and one element in `page.tsx`. No existing section was touched.
 ### The assets are five, not four
 
 `public/expression-video-slider/` holds **five** clips, not the four the
-brief expected: *feeling bored*, *feeling sad*, *funny*, *thinking* and
+brief expected: *Feeling Bored1*, *feeling sad*, *funny*, *thinking* and
 *vibing on music*. All five are used. Every filename contains a space, so
 each `src` is `encodeURIComponent`-ed — the same trap the S2 welcome video
 hit. The files were not renamed, moved or altered.

@@ -40,14 +40,14 @@ const PHONES: readonly Phone[] = [
   {
     src: "/news-latter-phone-img/avatar-setup.png",
     alt: "Building a Knocka avatar",
-    rest: { x: -2, y: 13, rotate: -18 },
-    open: { x: -12, y: 20, rotate: -22 },
+    rest: { x: -8, y: 13, rotate: -18 },
+    open: { x: -30, y: 22, rotate: -24 },
   },
   {
     src: "/news-latter-phone-img/Welcome.png",
     alt: "The Knocka welcome screen: don't text, arrive",
     rest: { x: 0, y: -5, rotate: -12 },
-    open: { x: 1, y: -14, rotate: -9 },
+    open: { x: 0, y: -14, rotate: -8 },
   },
   {
     // The file name has a space in it. Encoded, because next/image hands the
@@ -55,8 +55,8 @@ const PHONES: readonly Phone[] = [
     // survive the round trip.
     src: "/news-latter-phone-img/splash%20screen.png",
     alt: "The Knocka splash screen",
-    rest: { x: 2, y: -22, rotate: -19 },
-    open: { x: 13, y: -30, rotate: -23 },
+    rest: { x: 8, y: -22, rotate: -19 },
+    open: { x: 30, y: -32, rotate: -25 },
   },
 ];
 

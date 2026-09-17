@@ -28,7 +28,7 @@ const clip = (file: string, mood: string): Clip => ({
   mood,
 });
 
-const BORED = clip("feeling bored", "Bored");
+const BORED = clip("Feeling Bored1", "Bored");
 const SAD = clip("feeling sad", "Sad");
 const FUNNY = clip("funny", "Amused");
 const THINKING = clip("thinking", "Thinking");

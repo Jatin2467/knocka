@@ -295,9 +295,10 @@
   }
 
   .arrival-frame img.arrival-media-el {
-    width: auto;
-    height: 90%;
-    max-width: 92%;
+    /* The logo is wider than tall, so it is allowed to fill nearly the
+       whole frame rather than being capped by height. */
+    width: 96%;
+    height: 96%;
     object-fit: contain;
   }
 

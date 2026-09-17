@@ -1,7 +1,9 @@
 import { DNAAnimation } from "@/components/animation/DNAAnimation";
 import { SiteHeader } from "@/components/navigation";
+import { BackToTop } from "@/components/navigation/BackToTop";
 import { Arrival } from "@/components/sections/Arrival";
 import { Expression } from "@/components/sections/Expression";
+import { Film } from "@/components/sections/Film";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Footer } from "@/components/sections/Footer";
 import { Newsletter } from "@/components/sections/Newsletter";
@@ -18,11 +20,13 @@ export default function Home() {
       <SiteHeader />
       <Range />
       <Arrival />
+      <Film />
       <HowItWorks />
       <Rooms />
       <Expression />
       <Newsletter />
       <Footer />
+      <BackToTop />
     </main>
   );
 }
