@@ -71,3 +71,22 @@ env:
   - variable: SMTP_PASS
     secret: SMTP_PASS
     availability: [RUNTIME]
+
+  # --- Firebase App Check for the waitlist API -------------------------------
+  # reCAPTCHA Enterprise site key (web, score-based, invisible; allowed domain:
+  # the hosted.app domain only). A PUBLIC key by design: it ships to the browser,
+  # so it must exist at BUILD time to be inlined. It has no secret half; do not
+  # add one.
+  - variable: NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY
+    value: 6LfUh9ktAAAAAI5GMyCpXvM4pinqGlomowhX09y-
+    availability: [BUILD]
+
+  # Server-side only, never public. "false" = monitor: requests without a valid
+  # App Check token are logged ("[appcheck] ... allowed") and let through.
+  # "true" = enforce: they get a generic 403 and nothing is written or sent.
+  # Only /api/waitlist and /api/waitlist/phone are affected. This is NOT
+  # Firebase's per-product enforcement, which stays off for Firestore, Auth,
+  # Storage and the Realtime Database (the mobile apps use those).
+  - variable: APP_CHECK_ENFORCE
+    value: "false"
+    availability: [RUNTIME]

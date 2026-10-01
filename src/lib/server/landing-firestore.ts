@@ -28,7 +28,8 @@ export type LandingDb =
   | { ok: false; reason: "not-configured" }
   | { ok: false; reason: "refused"; detail: string };
 
-function getServerApp(): App {
+/** The one named Admin app for the whole site; Firestore and App Check both use it. */
+export function getServerApp(): App {
   const existing = getApps().find((app) => app.name === APP_NAME);
   if (existing) return existing;
   return initializeApp(

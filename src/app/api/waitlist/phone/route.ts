@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+import { appCheckGate } from "@/lib/server/app-check";
 import { normalizePhone } from "@/lib/server/phone";
 import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
 import { addWaitlistPhone } from "@/lib/server/waitlist-store";
@@ -34,13 +35,6 @@ function reply(body: WaitlistPhoneResponse, status = 200) {
 }
 
 export async function POST(request: NextRequest) {
-  if (isRateLimited(clientKey(request), Date.now())) {
-    return reply(
-      { ok: false, error: "Too many attempts. Please try again in a few minutes." },
-      429,
-    );
-  }
-
   const raw = await request.text();
   if (raw.length > MAX_BODY_BYTES) {
     return reply({ ok: false, error: "That request was too large." }, 413);
@@ -53,6 +47,17 @@ export async function POST(request: NextRequest) {
     body = parsed as Record<string, unknown>;
   } catch {
     return reply({ ok: false, error: "Something went wrong. Please try again." }, 400);
+  }
+
+  // App Check first, then the per-visitor limit (see the signup route).
+  const refused = await appCheckGate(request, "waitlist/phone");
+  if (refused) return refused;
+
+  if (isRateLimited(clientKey(request), Date.now())) {
+    return reply(
+      { ok: false, error: "Too many attempts. Please try again in a few minutes." },
+      429,
+    );
   }
 
   const email = normalizeEmail(body.email);

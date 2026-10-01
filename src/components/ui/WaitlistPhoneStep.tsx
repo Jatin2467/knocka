@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { APP_CHECK_HEADER, getAppCheckToken } from "@/lib/app-check";
 import { cn } from "@/lib/cn";
 import {
   countryOptions,
@@ -87,9 +88,17 @@ export function WaitlistPhoneStep({
         phoneCountry: country,
         smsConsent: consent,
       };
+      // The token is almost certainly cached from step 1; no token, no request.
+      const appCheckToken = await getAppCheckToken();
+      if (!appCheckToken) {
+        setError("We couldn't verify your browser. Please refresh the page and try again.");
+        setSending(false);
+        return;
+      }
+
       const response = await fetch("/api/waitlist/phone", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [APP_CHECK_HEADER]: appCheckToken },
         body: JSON.stringify(payload),
       });
       const result = (await response

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+import { appCheckGate } from "@/lib/server/app-check";
 import { reserveMail } from "@/lib/server/mail-quota";
 import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
 import {
@@ -17,8 +18,9 @@ import {
 /**
  * POST /api/waitlist — { email, source, company? } -> { ok, offerPhone? } | { ok, error }
  *
- * Checks run cheapest first: rate limit, body size, honeypot, address, mail
- * settings, then the record, and only then any email. Error messages are
+ * Checks run in this order: body size and shape, App Check token, rate limit,
+ * honeypot, address, mail settings, then the record, and only then any email.
+ * Error messages are
  * written for the visitor, because the form shows them as they are; the detail
  * a developer needs goes to the server log instead.
  *
@@ -56,14 +58,6 @@ function reply(body: WaitlistResponse, status = 200) {
 }
 
 export async function POST(request: NextRequest) {
-  const now = Date.now();
-  if (isRateLimited(clientKey(request), now) || isOverloaded("all", now)) {
-    return reply(
-      { ok: false, error: "Too many attempts. Please try again in a few minutes." },
-      429,
-    );
-  }
-
   const raw = await request.text();
   if (raw.length > MAX_BODY_BYTES) {
     return reply({ ok: false, error: "That request was too large." }, 413);
@@ -76,6 +70,19 @@ export async function POST(request: NextRequest) {
     body = parsed as Record<string, unknown>;
   } catch {
     return reply({ ok: false, error: "Something went wrong. Please try again." }, 400);
+  }
+
+  // App Check first: a request that cannot prove it came from our page does
+  // not get to spend anyone's rate-limit allowance, let alone send mail.
+  const refused = await appCheckGate(request, "waitlist");
+  if (refused) return refused;
+
+  const now = Date.now();
+  if (isRateLimited(clientKey(request), now) || isOverloaded("all", now)) {
+    return reply(
+      { ok: false, error: "Too many attempts. Please try again in a few minutes." },
+      429,
+    );
   }
 
   // Honeypot filled: answer exactly like a success so the bot learns

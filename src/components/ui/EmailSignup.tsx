@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { APP_CHECK_HEADER, getAppCheckToken, warmAppCheck } from "@/lib/app-check";
 import { cn } from "@/lib/cn";
 import {
   normalizeEmail,
@@ -57,6 +58,8 @@ const SOURCE: Record<EmailSignupVariant, WaitlistSource> = {
 };
 
 const FALLBACK_ERROR = "We couldn't add you just now. Please try again.";
+const VERIFY_ERROR =
+  "We couldn't verify your browser. Please refresh the page and try again.";
 
 /**
  * The waitlist field. Posts to /api/waitlist, which emails the owner and
@@ -94,9 +97,17 @@ export function EmailSignup({
     setStatus({ kind: "sending" });
     void loadPhoneStep().catch(() => undefined); // warm the step-2 chunk
     try {
+      // App Check proves the request comes from this page. With no token the
+      // request is not sent at all, and the visitor is told nothing technical.
+      const appCheckToken = await getAppCheckToken();
+      if (!appCheckToken) {
+        setStatus({ kind: "error", message: VERIFY_ERROR });
+        return;
+      }
+
       const response = await fetch("/api/waitlist", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [APP_CHECK_HEADER]: appCheckToken },
         body: JSON.stringify(payload),
       });
       const result = (await response
@@ -204,6 +215,7 @@ export function EmailSignup({
       <form
         className={cn("relative w-full", className)}
         onSubmit={submit}
+        onFocus={warmAppCheck}
         aria-busy={sending}
       >
         <label className="sr-only" htmlFor={id}>
@@ -250,6 +262,7 @@ export function EmailSignup({
     <form
       className={cn("relative flex w-full flex-wrap items-center gap-3", className)}
       onSubmit={submit}
+      onFocus={warmAppCheck}
       aria-busy={sending}
     >
       <label className="sr-only" htmlFor={id}>
