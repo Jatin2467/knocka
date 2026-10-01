@@ -87,6 +87,9 @@ env:
   # Only /api/waitlist and /api/waitlist/phone are affected. This is NOT
   # Firebase's per-product enforcement, which stays off for Firestore, Auth,
   # Storage and the Realtime Database (the mobile apps use those).
+  # ENFORCING since 2026-10-01, after monitor mode showed a genuine browser
+  # getting valid tokens in production and missing/invalid ones being logged.
+  # To go back to monitoring, set it to "false" and roll out.
   - variable: APP_CHECK_ENFORCE
-    value: "false"
+    value: "true"
     availability: [RUNTIME]
