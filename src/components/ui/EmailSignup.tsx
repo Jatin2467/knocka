@@ -3,11 +3,13 @@
 import { useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { WaitlistPhoneStep } from "@/components/ui/WaitlistPhoneStep";
 import { cn } from "@/lib/cn";
-import type {
-  WaitlistRequest,
-  WaitlistResponse,
-  WaitlistSource,
+import {
+  normalizeEmail,
+  type WaitlistRequest,
+  type WaitlistResponse,
+  type WaitlistSource,
 } from "@/lib/waitlist";
 
 export type EmailSignupVariant = "panel" | "inline";
@@ -24,9 +26,17 @@ export interface EmailSignupProps {
   className?: string;
 }
 
+/**
+ * idle -> sending -> phone (step 2, new signups only) -> added | sent
+ *                 \-> sent (a repeat signup goes straight here)
+ * "sent" is the finished state; skipping step 2 lands there too, and it is
+ * never offered again for the same signup.
+ */
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
+  | { kind: "phone"; email: string }
+  | { kind: "added" }
   | { kind: "sent" }
   | { kind: "error"; message: string };
 
@@ -83,7 +93,11 @@ export function EmailSignup({
         .catch(() => null)) as WaitlistResponse | null;
 
       if (response.ok && result?.ok) {
-        setStatus({ kind: "sent" });
+        setStatus(
+          result.offerPhone
+            ? { kind: "phone", email: normalizeEmail(payload.email) ?? payload.email }
+            : { kind: "sent" },
+        );
       } else {
         setStatus({
           kind: "error",
@@ -98,6 +112,36 @@ export function EmailSignup({
       });
     }
   };
+
+  if (status.kind === "phone") {
+    return (
+      <WaitlistPhoneStep
+        email={status.email}
+        variant={variant}
+        className={className}
+        onAdded={() => setStatus({ kind: "added" })}
+        onSkip={() => setStatus({ kind: "sent" })}
+      />
+    );
+  }
+
+  if (status.kind === "added") {
+    return (
+      <p
+        className={cn(
+          "m-0 text-[14px]",
+          variant === "panel"
+            ? "text-[rgba(255,255,255,0.82)]"
+            : "text-text-secondary",
+          className,
+        )}
+        role="status"
+      >
+        ✦ Number added. You&apos;re on the list, and we&apos;ll text you when
+        Knocka launches.
+      </p>
+    );
+  }
 
   if (status.kind === "sent") {
     return (

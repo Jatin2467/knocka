@@ -119,33 +119,93 @@ export async function sendWaitlistEmails(
   config: MailConfig,
   signup: Signup,
 ): Promise<void> {
-  const transporter = transporterFor(config);
+  let transporter: Transporter;
+  try {
+    transporter = transporterFor(config);
+  } catch (error) {
+    console.error(`[waitlist] Mail stage=transport failed. ${describeMailError(error)}`);
+    throw error;
+  }
 
   const [owner, confirmation] = await Promise.allSettled([
-    transporter.sendMail({
-      from: config.from,
-      to: config.owner,
-      // Replying to the notification writes straight to the new signup.
-      replyTo: signup.email,
-      subject: `New ${siteConfig.name} waitlist signup: ${signup.email}`,
-      ...ownerMessage(signup),
-    }),
-    transporter.sendMail({
-      from: config.from,
-      to: signup.email,
-      replyTo: config.owner,
-      subject: `You're on the ${siteConfig.name} waitlist`,
-      ...confirmationMessage(signup),
-    }),
+    logged(
+      "owner",
+      transporter.sendMail({
+        from: config.from,
+        to: config.owner,
+        // Replying to the notification writes straight to the new signup.
+        replyTo: signup.email,
+        subject: `New ${siteConfig.name} waitlist signup: ${signup.email}`,
+        ...ownerMessage(signup),
+      }),
+    ),
+    logged(
+      "confirmation",
+      transporter.sendMail({
+        from: config.from,
+        to: signup.email,
+        replyTo: config.owner,
+        subject: `You're on the ${siteConfig.name} waitlist`,
+        ...confirmationMessage(signup),
+      }),
+    ),
   ]);
 
+  // Both outcomes are already logged. Only the owner's failure fails the call.
   if (owner.status === "rejected") throw owner.reason;
-  if (confirmation.status === "rejected") {
-    console.error(
-      `[waitlist] Confirmation to ${signup.email} failed; the signup was still recorded.`,
-      confirmation.reason,
-    );
+  void confirmation;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Logging                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One line per message, so "did Gmail actually take it?" is answerable from
+ * the server log: the SMTP reply on success, the sanitised reason on failure.
+ */
+async function logged(
+  to: "owner" | "confirmation",
+  sending: Promise<{ response?: string }>,
+): Promise<void> {
+  try {
+    const info = await sending;
+    console.log(`[waitlist] Mail stage=send to=${to} accepted. ${smtpReplyLine(info.response)}`);
+  } catch (error) {
+    console.error(`[waitlist] Mail stage=send to=${to} failed. ${describeMailError(error)}`);
+    throw error;
   }
+}
+
+/** "250 2.0.0 OK 17... - gsmtp" -> its first 80 characters. */
+function smtpReplyLine(response: unknown): string {
+  return typeof response === "string" ? `reply="${redact(response).split(/\r?\n/)[0].slice(0, 80)}"` : "";
+}
+
+/** Never let the password reach a log line, even inside an upstream message. */
+function redact(text: string): string {
+  const pass = process.env.SMTP_PASS?.trim();
+  let out = text;
+  for (const secret of new Set([pass, pass?.replace(/\s+/g, "")])) {
+    if (secret && secret.length >= 4) out = out.split(secret).join("[redacted]");
+  }
+  return out;
+}
+
+/**
+ * A log-safe description of a mail failure: Nodemailer's code, the SMTP reply
+ * code, the failing command and the first line of the message. Never the
+ * error object itself, which can carry the whole server conversation.
+ */
+export function describeMailError(error: unknown): string {
+  const e = (error ?? {}) as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof e.code === "string") parts.push(`code=${e.code}`);
+  if (typeof e.responseCode === "number") parts.push(`smtp=${e.responseCode}`);
+  if (typeof e.command === "string") parts.push(`command=${e.command}`);
+  const message = typeof e.message === "string" ? e.message : String(error);
+  parts.push(`message="${redact(message).split(/\r?\n/)[0].slice(0, 200)}"`);
+  return parts.join(" ");
 }
 
 /* ------------------------------------------------------------------ */

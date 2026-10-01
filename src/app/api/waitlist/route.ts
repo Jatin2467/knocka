@@ -1,6 +1,11 @@
 import type { NextRequest } from "next/server";
 
-import { getMailConfig, sendWaitlistEmails } from "@/lib/server/waitlist-mail";
+import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
+import {
+  describeMailError,
+  getMailConfig,
+  sendWaitlistEmails,
+} from "@/lib/server/waitlist-mail";
 import { saveWaitlistSignup } from "@/lib/server/waitlist-store";
 import {
   isWaitlistSource,
@@ -21,39 +26,8 @@ import {
 
 const MAX_BODY_BYTES = 2_000;
 
-/*
-  Five attempts per address per ten minutes. Kept in memory, so it is per
-  server instance: it stops a script hammering one process, not a
-  distributed attack. Behind several instances, move this to a shared store
-  (Redis, Upstash) or the platform's own rate limiting.
-*/
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 10 * 60 * 1000;
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(key: string, now: number): boolean {
-  // Drop expired windows so the map cannot grow without bound.
-  if (attempts.size > 5_000) {
-    for (const [k, v] of attempts) if (v.resetAt <= now) attempts.delete(k);
-  }
-  const entry = attempts.get(key);
-  if (!entry || entry.resetAt <= now) {
-    attempts.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > RATE_LIMIT;
-}
-
-/** The first hop in x-forwarded-for is the visitor; the rest are proxies. */
-function clientKey(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  return (
-    forwarded?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip")?.trim() ||
-    "unknown"
-  );
-}
+/* Five attempts per visitor per ten minutes (see lib/server/rate-limit.ts). */
+const isRateLimited = createRateLimiter(5, 10 * 60 * 1000);
 
 function reply(body: WaitlistResponse, status = 200) {
   return Response.json(body, { status });
@@ -114,8 +88,10 @@ export async function POST(request: NextRequest) {
     saveWaitlistSignup({ email, source, userAgent }),
   ]);
 
+  // Each message's own outcome is logged by the mailer; this is the owner
+  // notification failing, which is the one that fails the whole send.
   if (mail.status === "rejected") {
-    console.error(`[waitlist] Email failed for ${email}.`, mail.reason);
+    console.error(`[waitlist] Email failed for ${email}. ${describeMailError(mail.reason)}`);
   }
   if (store.status === "rejected") {
     console.error(`[waitlist] Firestore write failed for ${email}.`, store.reason);
@@ -131,5 +107,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return reply({ ok: true });
+  // Only a brand-new record may go on to add a mobile number (step 2).
+  const isNew = store.status === "fulfilled" && store.value === "saved";
+  return reply(isNew ? { ok: true, offerPhone: true } : { ok: true });
 }

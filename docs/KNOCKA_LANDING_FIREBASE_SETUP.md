@@ -94,7 +94,15 @@ Never put the value in `apphosting.yaml`, `.env.example` or Git. Local developme
 
 ## 8. Waitlist behavior
 
-Email and Firestore run in parallel. A signup succeeds if **either** recorded it; only if both fail does the visitor see an error. Nodemailer is unchanged. No phone, referral, reward or counter features yet.
+Email and Firestore run in parallel. A signup succeeds if **either** recorded it; only if both fail does the visitor see an error. Nodemailer is unchanged. No referral, reward or counter features yet.
+
+**Mail logging.** Each message logs one line: `[waitlist] Mail stage=send to=owner|confirmation accepted. reply="250 …"` or `… failed. code=… smtp=… message="…"`. Only the code, SMTP reply code, command and first message line are logged, with `SMTP_PASS` redacted. Read them in Cloud Logging for Cloud Run service `knocka` (us-east4). A Gmail login failure shows as `535-5.7.8 Username and Password not accepted`: the `SMTP_PASS` secret is not a valid App Password. Fix by re-running `firebase apphosting:secrets:set SMTP_PASS` and starting a new rollout, because a rollout pins the secret version it was built with.
+
+**Step 2: optional mobile number (collect and store only; no SMS is sent and no SMS provider is connected).**
+- After a *new* signup the API answers `{ ok: true, offerPhone: true }` and the form shows "You're on the Knocka list!" with an optional number and SMS consent. A repeat of an existing address gets plain `{ ok: true }` and no step 2.
+- `POST /api/waitlist/phone` `{ email, phoneNumber, smsConsent: true }` updates the same `waitlist/{email}` record, writing only `phoneNumber` (E.164, e.g. `+12015550123`), `smsOptIn: true` and `smsConsentAt` (server timestamp). Email, source, userAgent and createdAt are never touched. Browsers still have no Firestore access.
+- The number can be added once, within 30 minutes of signup, on a record that has none. Any other case (no such record, too old, already has a number) answers the same generic 409. Rate limit: 5 attempts per visitor per 10 minutes.
+- Numbers: `+` plus country code (8 to 15 digits), or a 10-digit North American number. Nothing is verified by text, so before sending any SMS use a double opt-in.
 
 ## 9. Share Knocka
 
