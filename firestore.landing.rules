@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Rules for the LANDING PAGE's Firestore database ONLY (knocka-landing).
+// These are NOT the mobile app's rules and must never be deployed to its
+// (default) database.
+//
+// The website writes the waitlist from the server (Next.js /api/waitlist,
+// using the Firebase Admin SDK), and the Admin SDK bypasses rules. So the
+// browser needs no access at all: every client read and write is denied.
+// That means the public cannot read, create, update or delete a waitlist
+// record, whatever it sends.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

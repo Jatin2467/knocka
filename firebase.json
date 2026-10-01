@@ -1,0 +1,20 @@
+{
+  "apphosting": {
+    "backendId": "knocka",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".next",
+      "firebase-debug.*.log",
+      "functions",
+      ".env*"
+    ]
+  },
+  "firestore": [
+    {
+      "database": "knocka-landing",
+      "rules": "firestore.landing.rules"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { getMailConfig, sendWaitlistEmails } from "@/lib/server/waitlist-mail";
+import { saveWaitlistSignup } from "@/lib/server/waitlist-store";
 import {
   isWaitlistSource,
   normalizeEmail,
@@ -103,15 +104,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  try {
-    await sendWaitlistEmails(settings.config, {
-      email,
-      source,
-      userAgent: request.headers.get("user-agent"),
-      at: new Date(),
-    });
-  } catch (error) {
-    console.error(`[waitlist] Could not record signup for ${email}.`, error);
+  const userAgent = request.headers.get("user-agent");
+
+  // Email and database in parallel. The signup counts if EITHER recorded it:
+  // the owner's email and the Firestore document are each a complete record.
+  // Only when both fail is the visitor asked to try again.
+  const [mail, store] = await Promise.allSettled([
+    sendWaitlistEmails(settings.config, { email, source, userAgent, at: new Date() }),
+    saveWaitlistSignup({ email, source, userAgent }),
+  ]);
+
+  if (mail.status === "rejected") {
+    console.error(`[waitlist] Email failed for ${email}.`, mail.reason);
+  }
+  if (store.status === "rejected") {
+    console.error(`[waitlist] Firestore write failed for ${email}.`, store.reason);
+  }
+
+  const emailed = mail.status === "fulfilled";
+  const stored = store.status === "fulfilled" && store.value !== "skipped";
+
+  if (!emailed && !stored) {
     return reply(
       { ok: false, error: "We couldn't add you just now. Please try again in a minute." },
       502,

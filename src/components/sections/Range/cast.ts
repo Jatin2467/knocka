@@ -156,16 +156,11 @@ export const CAST: readonly Profile[] = [
 ];
 
 /**
- * The five steps, as one line of type that never stops moving.
- *
- * They are the section's argument, and putting them on the band rather than
- * in a list is what keeps them being read as a sequence — the same words
- * pass again every time the eye comes back to it.
+ * The brand taglines, as one line of type that never stops moving — the same
+ * words pass again every time the eye comes back to it.
  */
 export const STEPS: readonly string[] = [
-  "Find your people",
-  "Invite them in",
-  "Show how you feel",
-  "Send your avatar",
-  "Knock their phone",
+  "Meet Knocka",
+  "Feel the message",
+  "Don't text, arrive",
 ];

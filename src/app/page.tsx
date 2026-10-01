@@ -9,6 +9,7 @@ import { Footer } from "@/components/sections/Footer";
 import { Newsletter } from "@/components/sections/Newsletter";
 import { Range } from "@/components/sections/Range";
 import { Rooms } from "@/components/sections/Rooms";
+import { Share } from "@/components/sections/Share";
 
 export default function Home() {
   // overflow-x is `clip`, not `hidden`: clip contains the hero and rooms bleed
@@ -25,6 +26,7 @@ export default function Home() {
       <Rooms />
       <Expression />
       <Newsletter />
+      <Share />
       <Footer />
       <BackToTop />
     </main>

@@ -1,0 +1,417 @@
+/* ============================================================
+   SHARE KNOCKA — the glass panel between the invite banner and
+   the footer
+
+   Same dark glass as the footer panel, no backdrop blur (the DNA
+   canvas repaints behind it). The ask sits on the left — heading,
+   line, and a small knock from the cast; the way to do it sits on
+   the right — one brand-coloured tile per app, a link bar, and
+   the system share button when the browser has one. Stacked on a
+   narrow screen. Colour is kept to the tiles' icons and a soft
+   glow, so the panel stays calm around them.
+============================================================ */
+
+@layer components {
+  .share {
+    position: relative;
+    z-index: 10;
+    padding: clamp(40px, 6vh, 72px) var(--container-gutter) 0;
+  }
+
+  .share-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    align-items: center;
+    gap: clamp(28px, 4vw, 64px);
+    width: min(var(--stage-max), 100%);
+    margin-inline: auto;
+    padding: clamp(26px, 3.8vw, 56px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: clamp(20px, 2.4vw, 32px);
+    background: rgba(9, 7, 14, 0.8);
+    box-shadow: var(--hairline-top);
+  }
+
+  /* Painted glows, never blurred layers. */
+  .share-orb {
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .share-orb-a {
+    top: -40%;
+    right: -8%;
+    width: 60%;
+    aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgba(168, 85, 247, 0.22), transparent);
+  }
+
+  .share-orb-b {
+    bottom: -45%;
+    left: -10%;
+    width: 50%;
+    aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgba(236, 72, 153, 0.13), transparent);
+  }
+
+  /* ---------- The ask ---------- */
+
+  .share-copy {
+    min-width: 0;
+  }
+
+  .share-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 18px;
+    padding: 7px 15px;
+    border: 1px solid var(--color-border-accent);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--color-accent-lilac);
+    font-size: var(--text-label);
+  }
+
+  .share-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(30px, 4vw, 52px);
+    font-weight: var(--font-weight-display);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .share-title .text-gradient {
+    --gradient: var(--gradient-heading);
+  }
+
+  .share-lead {
+    max-width: 42ch;
+    margin: clamp(14px, 1.5vw, 20px) 0 0;
+    color: var(--color-text-secondary);
+    font-size: clamp(14px, 1.05vw, 16px);
+    line-height: 1.6;
+  }
+
+  /* A knock from the cast: three faces and the message they'd send. */
+  .share-knock {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: clamp(20px, 2.4vw, 32px);
+  }
+
+  .share-faces {
+    display: flex;
+  }
+
+  .share-face {
+    width: 46px;
+    height: 46px;
+    margin-left: -12px;
+    border: 2px solid #0d0a14;
+    border-radius: 50%;
+    background: #1a1426;
+    object-fit: cover;
+  }
+
+  .share-face:first-child {
+    margin-left: 0;
+  }
+
+  .share-bubble {
+    display: grid;
+    gap: 2px;
+    padding: 10px 16px 11px;
+    border: 1px solid var(--color-border-accent);
+    border-radius: 18px 18px 18px 6px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(236, 72, 153, 0.14));
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .share-bubble small {
+    color: var(--color-text-secondary);
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+
+  /* ---------- The way to do it ---------- */
+
+  .share-actions {
+    display: grid;
+    gap: 14px;
+  }
+
+  .share-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--gradient-brand);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 16px 36px -16px rgba(168, 85, 247, 0.8);
+    transition:
+      transform 0.25s ease,
+      filter 0.25s ease;
+  }
+
+  .share-main svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .share-main-hint {
+    margin-left: 4px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  .share-main:is(:hover, :focus-visible) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+  }
+
+  .share-main:active {
+    transform: scale(0.98);
+  }
+
+  /* The address, with its copy button inside the same pill. */
+  .share-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 16px;
+    border: 1px solid var(--color-border-glass);
+    border-radius: var(--radius-control);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-secondary);
+  }
+
+  .share-link > svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--color-accent-lilac);
+  }
+
+  .share-link-url {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-bright);
+    font-size: 14.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .share-copy-btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 1px solid var(--color-border-accent-strong);
+    border-radius: 10px;
+    background: rgba(168, 85, 247, 0.16);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .share-copy-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .share-copy-btn:is(:hover, :focus-visible) {
+    background: rgba(168, 85, 247, 0.32);
+  }
+
+  .share-copy-btn[data-done] {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: rgba(52, 211, 153, 0.18);
+  }
+
+  /* ---------- App tiles ---------- */
+
+  .share-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .share-tile {
+    --tone: 168 85 247;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "icon label"
+      "icon hint";
+    align-items: center;
+    column-gap: 12px;
+    height: 100%;
+    padding: 12px 14px;
+    border: 1px solid rgb(var(--tone) / 0.28);
+    border-radius: 16px;
+    background: linear-gradient(
+      150deg,
+      rgb(var(--tone) / 0.14),
+      rgb(var(--tone) / 0.03) 75%
+    );
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition:
+      transform 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .share-tile-whatsapp {
+    --tone: 37 211 102;
+  }
+  .share-tile-instagram {
+    --tone: 236 72 153;
+  }
+  .share-tile-tiktok {
+    --tone: 45 212 235;
+  }
+  .share-tile-email {
+    --tone: 56 189 248;
+  }
+
+  .share-tile:is(:hover, :focus-visible) {
+    border-color: rgb(var(--tone) / 0.65);
+    transform: translateY(-3px);
+  }
+
+  .share-tile:active {
+    transform: scale(0.97);
+  }
+
+  .share-tile-icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    color: #fff;
+    background: rgb(var(--tone));
+  }
+
+  .share-tile-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Each app in its own colours, on the icon chip only. */
+  .share-tile-instagram .share-tile-icon {
+    background: linear-gradient(45deg, #f9a03f, #ee2a7b 50%, #7f3fe0);
+  }
+
+  .share-tile-tiktok .share-tile-icon {
+    background: #0b0b10;
+    box-shadow:
+      -2px -2px 0 #25f4ee,
+      2px 2px 0 #fe2c55;
+  }
+
+  .share-tile-email .share-tile-icon {
+    background: linear-gradient(135deg, #38bdf8, #6366f1);
+  }
+
+  .share-tile-label {
+    grid-area: label;
+    align-self: end;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .share-tile-hint {
+    grid-area: hint;
+    align-self: start;
+    color: var(--color-text-secondary);
+    font-size: 12.5px;
+    line-height: 1.3;
+  }
+
+  /* Holds its line even while empty, so a message never shifts the page. */
+  .share-status {
+    min-height: 1.5em;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 13.5px;
+  }
+
+  .share-status[data-ok] {
+    color: #6ee7b7;
+  }
+
+  /* ---------- Narrow ---------- */
+
+  @media (max-width: 900px) {
+    .share-panel {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 360px) {
+    .share-main-hint {
+      display: none;
+    }
+  }
+
+  /* Narrow: icon above the words, so no label is ever squeezed. */
+  @media (max-width: 520px) {
+    .share-tile {
+      padding: 12px;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "icon"
+        "label"
+        "hint";
+      row-gap: 6px;
+      align-items: start;
+    }
+
+    .share-tile-label,
+    .share-tile-hint {
+      align-self: start;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .share-tile,
+    .share-main {
+      transition: none;
+    }
+  }
+}

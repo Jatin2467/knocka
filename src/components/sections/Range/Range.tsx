@@ -148,8 +148,10 @@ export function Range() {
             <div className="knock-band-track">
               {[0, 1].map((run) => (
                 <span className="knock-band-run" key={run}>
-                  {STEPS.map((step) => (
-                    <span className="knock-band-item" key={step}>
+                  {/* Three short lines are repeated so one run is always
+                      wider than the screen and the loop never shows a gap. */}
+                  {[...STEPS, ...STEPS, ...STEPS].map((step, index) => (
+                    <span className="knock-band-item" key={index}>
                       {step}
                       <i>✦</i>
                     </span>

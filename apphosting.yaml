@@ -1,0 +1,73 @@
+# Firebase App Hosting settings for the Knocka landing page.
+# Project knocka-75c63, backend "knocka" (us-east4, live branch main, repo Jatin2467/knocka).
+# Reference: https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  # Small and cheap: scale to zero when idle, cap the burst.
+  minInstances: 0
+  maxInstances: 2
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+env:
+  # Firebase web app config. Identifiers, not secrets (see .env.example).
+  # They are NEXT_PUBLIC_, so they must exist at BUILD time to be inlined.
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyApZNj7IDEcAZJdn3CfQw5OuHE5tYWAjVA
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: knocka-75c63.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+    value: https://knocka-75c63-default-rtdb.firebaseio.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: knocka-75c63
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: knocka-75c63.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "7245529143"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:7245529143:web:1393c32a1bc69c33753fb2
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-7DNBZYVXPR
+    availability: [BUILD, RUNTIME]
+
+  # --- Waitlist database -----------------------------------------------------
+  # The landing page's own Firestore database in knocka-75c63 — never
+  # "(default)", which belongs to the mobile apps. The server refuses to write
+  # if this is "(default)", and skips the write if it is unset.
+  - variable: FIRESTORE_DATABASE_ID
+    value: knocka-landing
+    availability: [RUNTIME]
+
+  # --- Waitlist email (Nodemailer, Gmail SMTP) ---------------------------------
+  # /api/waitlist answers 503 "Signups are paused" unless SMTP_HOST, SMTP_USER,
+  # SMTP_PASS and WAITLIST_OWNER_EMAIL are all present at RUNTIME.
+  # SMTP_SECURE is deliberately unset: port 465 implies implicit TLS.
+  - variable: SMTP_HOST
+    value: smtp.gmail.com
+    availability: [RUNTIME]
+  - variable: SMTP_PORT
+    value: "465"
+    availability: [RUNTIME]
+  - variable: SMTP_USER
+    value: jatin.apl1234@gmail.com
+    availability: [RUNTIME]
+  - variable: MAIL_FROM
+    value: "Knocka <jatin.apl1234@gmail.com>"
+    availability: [RUNTIME]
+  - variable: WAITLIST_OWNER_EMAIL
+    value: jatin.apl1234@gmail.com
+    availability: [RUNTIME]
+
+  # The password lives in Secret Manager (secret SMTP_PASS, created 2026-10-01,
+  # read access granted to the backend's service account). Value never in Git.
+  - variable: SMTP_PASS
+    secret: SMTP_PASS
+    availability: [RUNTIME]
