@@ -33,7 +33,10 @@ export type WaitlistResponse =
 /** Step 2: add a mobile number and SMS consent to the signup just made. */
 export interface WaitlistPhoneRequest {
   email: string;
+  /** As typed, in the picked country's own format (or with its own + code). */
   phoneNumber: string;
+  /** ISO 3166-1 alpha-2 code of the picked country, e.g. "US". */
+  phoneCountry: string;
   /** The checkbox. Must be exactly `true`. */
   smsConsent: boolean;
 }
@@ -41,37 +44,9 @@ export interface WaitlistPhoneRequest {
 export type WaitlistPhoneResponse = { ok: true } | { ok: false; error: string };
 
 export const PHONE_INVALID_MESSAGE =
-  "Please enter a valid mobile number, like (201) 555-0123, or start with + and your country code.";
+  "That doesn't look like a valid mobile number for the country you picked. Check it and try again.";
 export const PHONE_CONSENT_MESSAGE =
   "Please tick the box to agree to receive texts.";
-
-/**
- * Normalise a mobile number to E.164 (`+15551234567`), or return null.
- *
- * Without a phone-number library, so only what can be decided safely:
- *  - a leading `+` means the visitor gave the country code: 8 to 15 digits,
- *    the first not 0 (E.164's own limits);
- *  - otherwise it is a North American number: 10 digits, or 11 with a leading
- *    1, where the area code and exchange both start with 2-9.
- * Spaces, dashes, dots and brackets are ignored. Anything else is rejected,
- * which also keeps letters and control characters out of the database.
- */
-export function normalizePhone(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const raw = value.trim();
-  if (raw.length === 0 || raw.length > 32) return null;
-  if (!/^\+?[\d\s().-]+$/.test(raw)) return null;
-
-  const digits = raw.replace(/\D/g, "");
-
-  if (raw.startsWith("+")) {
-    return /^[1-9]\d{7,14}$/.test(digits) ? `+${digits}` : null;
-  }
-
-  const national =
-    digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
-  return /^[2-9]\d{2}[2-9]\d{6}$/.test(national) ? `+1${national}` : null;
-}
 
 /** RFC 5321's limit on a whole address. */
 const EMAIL_MAX_LENGTH = 254;

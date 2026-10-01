@@ -1,9 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { WaitlistPhoneStep } from "@/components/ui/WaitlistPhoneStep";
 import { cn } from "@/lib/cn";
 import {
   normalizeEmail,
@@ -11,6 +11,16 @@ import {
   type WaitlistResponse,
   type WaitlistSource,
 } from "@/lib/waitlist";
+
+/*
+  Step 2 brings the phone-number library and its country data with it, which
+  only visitors who finish step 1 ever need. So it is its own chunk, fetched
+  while the signup request is in flight (see `submit`) and never in the first
+  page load. It appears only after a click, so it has no server HTML.
+*/
+const loadPhoneStep = () =>
+  import("@/components/ui/WaitlistPhoneStep").then((m) => m.WaitlistPhoneStep);
+const WaitlistPhoneStep = dynamic(loadPhoneStep, { ssr: false });
 
 export type EmailSignupVariant = "panel" | "inline";
 
@@ -82,6 +92,7 @@ export function EmailSignup({
     };
 
     setStatus({ kind: "sending" });
+    void loadPhoneStep().catch(() => undefined); // warm the step-2 chunk
     try {
       const response = await fetch("/api/waitlist", {
         method: "POST",

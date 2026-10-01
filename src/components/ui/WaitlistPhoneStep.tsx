@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import {
+  countryOptions,
+  guessCountry,
+  normalizePhone,
+  type CountryCode,
+} from "@/lib/phone";
+import {
   PHONE_CONSENT_MESSAGE,
   PHONE_INVALID_MESSAGE,
-  normalizePhone,
   type WaitlistPhoneRequest,
   type WaitlistPhoneResponse,
 } from "@/lib/waitlist";
@@ -30,8 +35,9 @@ const FALLBACK_ERROR = "We couldn't save your number. Please try again.";
  * STEP 2 of the waitlist: right after the email is in, an optional mobile
  * number and SMS consent.
  *
- * Collects and stores only. Nothing is texted from here and no SMS provider is
- * wired up, so the copy promises a text at launch and nothing sooner.
+ * A country picker and the number, nothing else: no code is texted to confirm
+ * it. Collects and stores only. Nothing is texted from here and no SMS provider
+ * is wired up, so the copy promises a text at launch and nothing sooner.
  *
  * The checkbox is a real checkbox and the button a real submit, so the whole
  * step works from the keyboard. Focus moves to the heading when the step
@@ -47,6 +53,12 @@ export function WaitlistPhoneStep({
   const id = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [phone, setPhone] = useState("");
+  // This step only exists after a click, never in server HTML, so reading the
+  // browser's language here cannot cause a hydration mismatch.
+  const [country, setCountry] = useState<CountryCode>(() =>
+    guessCountry(typeof navigator === "undefined" ? undefined : navigator.language),
+  );
+  const countries = useMemo(() => countryOptions(), []);
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -63,7 +75,7 @@ export function WaitlistPhoneStep({
     if (sending) return;
 
     // The server checks all of this again; this is the quick, kind version.
-    if (!normalizePhone(phone)) return setError(PHONE_INVALID_MESSAGE);
+    if (!normalizePhone(phone, country)) return setError(PHONE_INVALID_MESSAGE);
     if (!consent) return setError(PHONE_CONSENT_MESSAGE);
 
     setError(null);
@@ -72,6 +84,7 @@ export function WaitlistPhoneStep({
       const payload: WaitlistPhoneRequest = {
         email,
         phoneNumber: phone,
+        phoneCountry: country,
         smsConsent: consent,
       };
       const response = await fetch("/api/waitlist/phone", {
@@ -134,22 +147,47 @@ export function WaitlistPhoneStep({
           >
             Mobile number (optional)
           </label>
-          <input
-            id={`${id}-phone`}
-            type="tel"
-            name="phone"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="(201) 555-0123"
-            value={phone}
-            onChange={(event) => {
-              setPhone(event.target.value);
-              if (error) setError(null);
-            }}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
-            className="w-full min-w-0 rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-4 py-3 text-[15px] text-white outline-none transition-[border-color,background-color] duration-200 placeholder:text-[rgba(255,255,255,0.4)] focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
-          />
+          {/* Country and number side by side; below ~300px they wrap rather
+              than squeeze. The country is a native select, so it opens with
+              the platform's own list and works from the keyboard. */}
+          <div className="flex flex-wrap gap-2">
+            <label htmlFor={`${id}-country`} className="sr-only">
+              Country
+            </label>
+            <select
+              id={`${id}-country`}
+              name="phoneCountry"
+              value={country}
+              onChange={(event) => {
+                setCountry(event.target.value as CountryCode);
+                if (error) setError(null);
+              }}
+              autoComplete="country"
+              className="min-w-0 flex-[1_1_9.5rem] cursor-pointer rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-3 py-3 text-[15px] text-ellipsis text-white [color-scheme:dark] outline-none transition-[border-color,background-color] duration-200 focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
+            >
+              {countries.map((option) => (
+                <option key={option.code} value={option.code} className="bg-[#140a26] text-white">
+                  {option.name} ({option.dial})
+                </option>
+              ))}
+            </select>
+            <input
+              id={`${id}-phone`}
+              type="tel"
+              name="phone"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder={country === "US" || country === "CA" ? "(201) 555-0123" : "Mobile number"}
+              value={phone}
+              onChange={(event) => {
+                setPhone(event.target.value);
+                if (error) setError(null);
+              }}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+              className="min-w-0 flex-[2_1_9rem] rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-4 py-3 text-[15px] text-white outline-none transition-[border-color,background-color] duration-200 placeholder:text-[rgba(255,255,255,0.4)] focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
+            />
+          </div>
         </div>
 
         <label

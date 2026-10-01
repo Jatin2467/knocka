@@ -66,15 +66,18 @@ const PHONE_WINDOW_MS = 30 * 60 * 1000;
 export type PhoneResult = "saved" | "not-eligible" | "skipped";
 
 /**
- * Add `phoneNumber`, `smsOptIn` and `smsConsentAt` to an existing record.
- * Only those three fields are written, so email, source, userAgent and
- * createdAt are never touched. Allowed once, within the window, on a record
- * that has no number yet; anything else is "not-eligible" without saying why.
- * Nothing here sends a text.
+ * Add `phoneNumber` (E.164), `phoneCountry` (ISO code), `smsOptIn` and
+ * `smsConsentAt` to an existing record. Only those four fields are written, so
+ * email, source, userAgent and createdAt are never touched. Allowed once,
+ * within the window, on a record that has no number yet; anything else is
+ * "not-eligible" without saying why. The consent time is the server's clock,
+ * and exists only because this is called after the visitor opted in. The
+ * number is not verified, and nothing here sends a text.
  */
 export async function addWaitlistPhone(input: {
   email: string;
   phoneNumber: string;
+  phoneCountry: string;
 }): Promise<PhoneResult> {
   const landing = getLandingDb();
 
@@ -98,6 +101,7 @@ export async function addWaitlistPhone(input: {
 
     tx.update(ref, {
       phoneNumber: input.phoneNumber,
+      phoneCountry: input.phoneCountry,
       smsOptIn: true,
       smsConsentAt: FieldValue.serverTimestamp(),
     });

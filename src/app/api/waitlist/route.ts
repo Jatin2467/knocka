@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+import { reserveMail } from "@/lib/server/mail-quota";
 import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
 import {
   describeMailError,
@@ -14,27 +15,49 @@ import {
 } from "@/lib/waitlist";
 
 /**
- * POST /api/waitlist — { email, source, company? } -> { ok } | { ok, error }
+ * POST /api/waitlist — { email, source, company? } -> { ok, offerPhone? } | { ok, error }
  *
  * Checks run cheapest first: rate limit, body size, honeypot, address, mail
- * settings, and only then the SMTP round trip. Error messages are written for
- * the visitor, because the form shows them as they are; the detail a
- * developer needs goes to the server log instead.
+ * settings, then the record, and only then any email. Error messages are
+ * written for the visitor, because the form shows them as they are; the detail
+ * a developer needs goes to the server log instead.
+ *
+ *  - new address: the record is created, then the owner is notified and the
+ *    visitor is sent a confirmation (two messages, taken from the shared daily
+ *    cap first). `offerPhone` lets the form go on to step 2.
+ *  - address already on the list: `{ ok: true }`, nothing written, no email.
+ *  - daily mail cap spent: the record is still saved, no email goes out.
  *
  * Runs on the Node.js runtime, the default — Nodemailer needs raw sockets.
  */
 
 const MAX_BODY_BYTES = 2_000;
 
+/** Owner notification + visitor confirmation. */
+const MESSAGES_PER_SIGNUP = 2;
+
+const PAUSED: WaitlistResponse = {
+  ok: false,
+  error: "Signups are paused for a moment. Please try again later.",
+};
+
 /* Five attempts per visitor per ten minutes (see lib/server/rate-limit.ts). */
 const isRateLimited = createRateLimiter(5, 10 * 60 * 1000);
+
+/*
+  A ceiling on the whole route, whoever is asking. The per-visitor limit is only
+  as good as the identity behind it, so this bounds the damage if an identity
+  ever turns out to be forgeable. Per instance, and far above real traffic.
+*/
+const isOverloaded = createRateLimiter(300, 10 * 60 * 1000);
 
 function reply(body: WaitlistResponse, status = 200) {
   return Response.json(body, { status });
 }
 
 export async function POST(request: NextRequest) {
-  if (isRateLimited(clientKey(request), Date.now())) {
+  const now = Date.now();
+  if (isRateLimited(clientKey(request), now) || isOverloaded("all", now)) {
     return reply(
       { ok: false, error: "Too many attempts. Please try again in a few minutes." },
       429,
@@ -72,42 +95,65 @@ export async function POST(request: NextRequest) {
     console.error(
       `[waitlist] Not configured — missing ${settings.missing.join(", ")}. See .env.example.`,
     );
-    return reply(
-      { ok: false, error: "Signups are paused for a moment. Please try again later." },
-      503,
-    );
+    return reply(PAUSED, 503);
   }
 
   const userAgent = request.headers.get("user-agent");
+  const signup = { email, source, userAgent, at: new Date() };
 
-  // Email and database in parallel. The signup counts if EITHER recorded it:
-  // the owner's email and the Firestore document are each a complete record.
-  // Only when both fail is the visitor asked to try again.
-  const [mail, store] = await Promise.allSettled([
-    sendWaitlistEmails(settings.config, { email, source, userAgent, at: new Date() }),
-    saveWaitlistSignup({ email, source, userAgent }),
-  ]);
-
-  // Each message's own outcome is logged by the mailer; this is the owner
-  // notification failing, which is the one that fails the whole send.
-  if (mail.status === "rejected") {
-    console.error(`[waitlist] Email failed for ${email}. ${describeMailError(mail.reason)}`);
-  }
-  if (store.status === "rejected") {
-    console.error(`[waitlist] Firestore write failed for ${email}.`, store.reason);
-  }
-
-  const emailed = mail.status === "fulfilled";
-  const stored = store.status === "fulfilled" && store.value !== "skipped";
-
-  if (!emailed && !stored) {
+  // The record comes first, because it decides everything after it: a repeat
+  // of an address on the list must not cost another email.
+  let stored: Awaited<ReturnType<typeof saveWaitlistSignup>>;
+  try {
+    stored = await saveWaitlistSignup({ email, source, userAgent });
+  } catch (error) {
+    console.error(`[waitlist] Firestore write failed for ${email}.`, error);
     return reply(
       { ok: false, error: "We couldn't add you just now. Please try again in a minute." },
       502,
     );
   }
 
-  // Only a brand-new record may go on to add a mobile number (step 2).
-  const isNew = store.status === "fulfilled" && store.value === "saved";
-  return reply(isNew ? { ok: true, offerPhone: true } : { ok: true });
+  // Already on the list: same friendly answer, no record, no email at all.
+  if (stored === "duplicate") return reply({ ok: true });
+
+  if (stored === "skipped") {
+    // No database configured. Fine on a laptop, where the email is the only
+    // record; in production it means a misconfiguration, and without the
+    // database there is no duplicate check and no shared mail cap, so send
+    // nothing rather than open the form up.
+    if (process.env.NODE_ENV === "production") {
+      console.error("[waitlist] FIRESTORE_DATABASE_ID is not set; signups are paused.");
+      return reply(PAUSED, 503);
+    }
+    try {
+      await sendWaitlistEmails(settings.config, signup);
+    } catch (error) {
+      console.error(`[waitlist] Email failed for ${email}. ${describeMailError(error)}`);
+      return reply(
+        { ok: false, error: "We couldn't add you just now. Please try again in a minute." },
+        502,
+      );
+    }
+    return reply({ ok: true });
+  }
+
+  // A new record. It is saved whatever happens to the mail, so from here on
+  // the visitor succeeds; mail trouble is logged, not shown.
+  try {
+    const slot = await reserveMail(MESSAGES_PER_SIGNUP);
+    if (slot.status === "reserved") {
+      await sendWaitlistEmails(settings.config, signup);
+    } else {
+      console.error(
+        slot.status === "cap-reached"
+          ? `[waitlist] Daily mail cap reached (${slot.sentToday}/${slot.cap}); no email sent for ${email}. The signup is saved.`
+          : `[waitlist] Mail quota unavailable; no email sent for ${email}. The signup is saved.`,
+      );
+    }
+  } catch (error) {
+    console.error(`[waitlist] Email failed for ${email}. ${describeMailError(error)}`);
+  }
+
+  return reply({ ok: true, offerPhone: true });
 }

@@ -1,22 +1,23 @@
 import type { NextRequest } from "next/server";
 
+import { normalizePhone } from "@/lib/server/phone";
 import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
 import { addWaitlistPhone } from "@/lib/server/waitlist-store";
 import {
   PHONE_CONSENT_MESSAGE,
   PHONE_INVALID_MESSAGE,
   normalizeEmail,
-  normalizePhone,
   type WaitlistPhoneResponse,
 } from "@/lib/waitlist";
 
 /**
- * POST /api/waitlist/phone — { email, phoneNumber, smsConsent } -> { ok } | { ok, error }
+ * POST /api/waitlist/phone — { email, phoneNumber, phoneCountry, smsConsent } -> { ok } | { ok, error }
  *
  * Step 2 of the waitlist: the visitor who has just signed up may add a mobile
- * number and agree to texts. Collects and stores them on the existing
- * `waitlist/{email}` record, nothing more — no text is sent from here and no
- * SMS provider is involved.
+ * number and agree to texts. The number is checked against the picked country
+ * and stored as E.164 on the existing `waitlist/{email}` record, nothing more —
+ * no code is texted to verify it, no text is sent from here and no SMS
+ * provider is involved.
  *
  * Writes go through the Admin SDK on the server, like the signup; the browser
  * still has no Firestore access. Whether the record exists, is too old or
@@ -59,8 +60,8 @@ export async function POST(request: NextRequest) {
     return reply({ ok: false, error: "Something went wrong. Please try again." }, 400);
   }
 
-  const phoneNumber = normalizePhone(body.phoneNumber);
-  if (!phoneNumber) {
+  const phone = normalizePhone(body.phoneNumber, body.phoneCountry);
+  if (!phone) {
     return reply({ ok: false, error: PHONE_INVALID_MESSAGE }, 400);
   }
 
@@ -70,7 +71,11 @@ export async function POST(request: NextRequest) {
 
   let result;
   try {
-    result = await addWaitlistPhone({ email, phoneNumber });
+    result = await addWaitlistPhone({
+      email,
+      phoneNumber: phone.e164,
+      phoneCountry: phone.country,
+    });
   } catch (error) {
     console.error(`[waitlist] Phone update failed for ${email}.`, error);
     return reply(

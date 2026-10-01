@@ -94,15 +94,32 @@ Never put the value in `apphosting.yaml`, `.env.example` or Git. Local developme
 
 ## 8. Waitlist behavior
 
-Email and Firestore run in parallel. A signup succeeds if **either** recorded it; only if both fail does the visitor see an error. Nodemailer is unchanged. No referral, reward or counter features yet.
+The record is written first; it decides what happens next. Nodemailer is unchanged. No referral, reward or counter features yet.
+
+| Case | Record | Email | Response |
+| --- | --- | --- | --- |
+| New address | created | owner notification + visitor confirmation (2 messages) | `{ ok: true, offerPhone: true }` |
+| Address already on the list | none | **none** | `{ ok: true }` |
+| New address, daily mail cap spent | created | none (logged: `Daily mail cap reached`) | `{ ok: true, offerPhone: true }` |
+| New address, SMTP fails | created | logged (sanitised) | `{ ok: true, offerPhone: true }` |
+| Firestore write fails | none | none | 502, generic message |
+| Production without `FIRESTORE_DATABASE_ID` | none | none | 503 "paused" (fails closed: no duplicate check and no shared cap without the database) |
+
+**Outbound mail cap.** Every instance reserves its messages from one counter in the landing database, `mailQuota/{UTC date}` (field `sent`), inside a transaction, before it sends. Default 300 messages a day (2 per signup, so 150 signups), under Gmail's roughly 500. Override with `WAITLIST_MAIL_DAILY_CAP`. `WAITLIST_MAIL_QUOTA_SCOPE` prefixes the counter's ID so a test can use its own; never set it in production. One small document per day accumulates; delete old ones whenever you like.
+
+**Who is the visitor (rate limiting).** `X-Forwarded-For` is never used: its leftmost value is whatever the sender typed. The limiter's identity is the `x-fah-client-ip` header that App Hosting's proxy reportedly sets (per a third-party source, not Firebase's own documentation; verified on each deploy, see below), believed only when `FIREBASE_CONFIG` is present (set by the platform at runtime, never by a visitor). Missing or invalid header means one shared "unidentified" bucket (too strict, never unlimited); IPv6 visitors are bucketed by /64; outside App Hosting everything is one "local" bucket. Limits: 5 attempts per visitor per 10 minutes on each of the two routes, plus a 300 per 10 minutes per-instance ceiling on `/api/waitlist` whoever is asking. Counters are per instance (App Hosting runs up to 2), so they are a first line only; the Firestore mail cap is the shared one.
+
+**Verify after every deploy that the platform really overwrites the header.** From any machine, send 6 requests with an invalid email and a different forged `x-fah-client-ip: 10.7.7.N` each: `curl -s -o /dev/null -w "%{http_code} " -X POST <site>/api/waitlist -H 'content-type: application/json' -H "x-fah-client-ip: 10.7.7.$i" -d '{"email":"not-an-email","source":"footer"}'`. If the platform overwrites the header, all six share your real identity and the **6th returns 429**. If the 6th returns 400, the header can be forged: stop and switch the identity source. (Invalid emails change nothing; wait 10 minutes before repeating.)
 
 **Mail logging.** Each message logs one line: `[waitlist] Mail stage=send to=owner|confirmation accepted. reply="250 …"` or `… failed. code=… smtp=… message="…"`. Only the code, SMTP reply code, command and first message line are logged, with `SMTP_PASS` redacted. Read them in Cloud Logging for Cloud Run service `knocka` (us-east4). A Gmail login failure shows as `535-5.7.8 Username and Password not accepted`: the `SMTP_PASS` secret is not a valid App Password. Fix by re-running `firebase apphosting:secrets:set SMTP_PASS` and starting a new rollout, because a rollout pins the secret version it was built with.
 
 **Step 2: optional mobile number (collect and store only; no SMS is sent and no SMS provider is connected).**
 - After a *new* signup the API answers `{ ok: true, offerPhone: true }` and the form shows "You're on the Knocka list!" with an optional number and SMS consent. A repeat of an existing address gets plain `{ ok: true }` and no step 2.
-- `POST /api/waitlist/phone` `{ email, phoneNumber, smsConsent: true }` updates the same `waitlist/{email}` record, writing only `phoneNumber` (E.164, e.g. `+12015550123`), `smsOptIn: true` and `smsConsentAt` (server timestamp). Email, source, userAgent and createdAt are never touched. Browsers still have no Firestore access.
-- The number can be added once, within 30 minutes of signup, on a record that has none. Any other case (no such record, too old, already has a number) answers the same generic 409. Rate limit: 5 attempts per visitor per 10 minutes.
-- Numbers: `+` plus country code (8 to 15 digits), or a 10-digit North American number. Nothing is verified by text, so before sending any SMS use a double opt-in.
+- The form has a country picker (all 245 countries from libphonenumber-js, with dial codes; the browser's language picks the default) and the number. **No OTP and no verification.**
+- `POST /api/waitlist/phone` `{ email, phoneNumber, phoneCountry, smsConsent: true }` updates the same `waitlist/{email}` record, writing only `phoneNumber` (E.164, e.g. `+12015550123`), `phoneCountry` (ISO code, e.g. `US`), `smsOptIn: true` and `smsConsentAt` (server timestamp, set only because consent was ticked). Email, source, userAgent and createdAt are never touched. Browsers still have no Firestore access. Older records with a number but no `phoneCountry` stay valid.
+- Validation uses libphonenumber-js: the number must be valid for the picked country (a `+` number must carry that country's code), and known non-mobile line types (landline, toll-free, premium) are refused. The browser checks with the small `min` metadata (loaded only after step 1); the server checks again with the full `max` metadata and decides.
+- The number can be added once, within 30 minutes of signup, on a record that has none. Any other case (no such record, too old, already has a number) answers the same generic 409.
+- Nothing is verified by text, so anyone can type any number. Before sending any SMS, add a double opt-in.
 
 ## 9. Share Knocka
 
