@@ -71,7 +71,7 @@
     left: 50%;
     top: 7%;
     z-index: 1;
-    width: min(64%, 760px);
+    width: min(66%, 800px);
     text-align: center;
     translate: -50% 0;
   }
@@ -92,7 +92,10 @@
   .knock-title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(32px, 5.6vw, 96px);
+    /* Sized so the longest line, "Don't text, arrive.", stays on one line in
+       the column at every width: three lines, never four, so the title
+       always clears the band below it. */
+    font-size: clamp(30px, 4.8vw, 74px);
     font-weight: var(--font-weight-display);
     line-height: 0.9;
     letter-spacing: -0.045em;
@@ -638,7 +641,7 @@
     }
 
     .knock-title {
-      font-size: clamp(30px, 9vw, 58px);
+      font-size: clamp(24px, 7.8vw, 58px);
     }
 
     .knock-band {

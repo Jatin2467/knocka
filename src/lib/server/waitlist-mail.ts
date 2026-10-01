@@ -227,6 +227,17 @@ const SOURCE_LABEL: Record<WaitlistSource, string> = {
   footer: "Footer",
 };
 
+/**
+ * The signup's address as a real link whose visible text is the address
+ * itself, exactly as stored (a `+tag` included, nothing percent-encoded).
+ * Without it, mail clients auto-link the plain text each in their own way.
+ * `+` is legal as-is in a mailto: URI (RFC 6068); only HTML escaping applies.
+ */
+function emailLink(address: string): string {
+  const safe = escapeHtml(address);
+  return `<a href="mailto:${safe}" style="color:#d8b4fe;text-decoration:underline;">${safe}</a>`;
+}
+
 function ownerMessage(signup: Signup) {
   const when = signup.at.toUTCString();
   const rows: [string, string][] = [
@@ -252,7 +263,7 @@ function ownerMessage(signup: Signup) {
           ([label, value]) => `
       <tr>
         <td style="padding:10px 0;border-top:1px solid #26203a;color:#94a3b8;font-size:13px;width:130px;vertical-align:top;">${escapeHtml(label)}</td>
-        <td style="padding:10px 0;border-top:1px solid #26203a;color:#f1f5f9;font-size:14px;word-break:break-word;">${escapeHtml(value)}</td>
+        <td style="padding:10px 0;border-top:1px solid #26203a;color:#f1f5f9;font-size:14px;word-break:break-word;">${label === "Email" ? emailLink(value) : escapeHtml(value)}</td>
       </tr>`,
         )
         .join("")}

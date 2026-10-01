@@ -122,13 +122,13 @@ export function Range() {
 
             <h1 className="knock-title" id="range-title">
               <RevealLine delay={0.04} reduceMotion={reduceMotion}>
-                Meet Knocka.
+                Meet Knocka
               </RevealLine>
               <RevealLine delay={0.13} reduceMotion={reduceMotion}>
-                Don&apos;t just text.
+                Feel the message
               </RevealLine>
               <RevealLine delay={0.22} reduceMotion={reduceMotion}>
-                <span className="text-gradient">Knock.</span>
+                <span className="text-gradient">Don&apos;t text, arrive.</span>
               </RevealLine>
             </h1>
           </div>

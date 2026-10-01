@@ -60,6 +60,7 @@ export function WaitlistPhoneStep({
     guessCountry(typeof navigator === "undefined" ? undefined : navigator.language),
   );
   const countries = useMemo(() => countryOptions(), []);
+  const selectedDial = countries.find((option) => option.code === country)?.dial ?? "";
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -156,30 +157,60 @@ export function WaitlistPhoneStep({
           >
             Mobile number (optional)
           </label>
-          {/* Country and number side by side; below ~300px they wrap rather
-              than squeeze. The country is a native select, so it opens with
-              the platform's own list and works from the keyboard. */}
-          <div className="flex flex-wrap gap-2">
-            <label htmlFor={`${id}-country`} className="sr-only">
-              Country
-            </label>
-            <select
-              id={`${id}-country`}
-              name="phoneCountry"
-              value={country}
-              onChange={(event) => {
-                setCountry(event.target.value as CountryCode);
-                if (error) setError(null);
-              }}
-              autoComplete="country"
-              className="min-w-0 flex-[1_1_9.5rem] cursor-pointer rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-3 py-3 text-[15px] text-ellipsis text-white [color-scheme:dark] outline-none transition-[border-color,background-color] duration-200 focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
-            >
-              {countries.map((option) => (
-                <option key={option.code} value={option.code} className="bg-[#140a26] text-white">
-                  {option.name} ({option.dial})
-                </option>
-              ))}
-            </select>
+          {/* One joined control: a compact country chip ("IN +91") and the
+              number, sharing a single outline like a native phone field. The
+              chip is only the visible face; a real <select> fills it,
+              transparent, so tapping opens the platform's own country list,
+              the keyboard works, and screen readers hear "Country, India
+              (+91)". It never wraps: the chip is narrow enough for 320px. */}
+          <div
+            className={cn(
+              "flex min-w-0 items-stretch overflow-hidden rounded-control border bg-[rgba(9,6,18,0.32)] transition-[border-color,background-color] duration-200 focus-within:bg-[rgba(9,6,18,0.5)]",
+              error
+                ? "border-[rgba(253,164,175,0.7)]"
+                : "border-[rgba(255,255,255,0.24)] focus-within:border-[rgba(255,255,255,0.6)]",
+            )}
+          >
+            <div className="relative flex shrink-0 items-center gap-1.5 border-r border-[rgba(255,255,255,0.14)] pr-2.5 pl-3 text-[14px] text-white transition-colors duration-200 hover:bg-[rgba(255,255,255,0.05)] has-[select:focus-visible]:bg-[rgba(255,255,255,0.08)]">
+              <span aria-hidden="true" className="hidden font-semibold tracking-[0.02em] min-[360px]:inline">
+                {country}
+              </span>
+              <span aria-hidden="true" className="text-[rgba(255,255,255,0.72)] tabular-nums">
+                {selectedDial}
+              </span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 12 12"
+                className="h-3 w-3 text-[rgba(255,255,255,0.55)]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 4.5 6 7.5 9 4.5" />
+              </svg>
+              <label htmlFor={`${id}-country`} className="sr-only">
+                Country
+              </label>
+              <select
+                id={`${id}-country`}
+                name="phoneCountry"
+                value={country}
+                onChange={(event) => {
+                  setCountry(event.target.value as CountryCode);
+                  if (error) setError(null);
+                }}
+                autoComplete="country"
+                className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0 [color-scheme:dark]"
+              >
+                {countries.map((option) => (
+                  <option key={option.code} value={option.code} className="bg-[#140a26] text-white">
+                    {option.name} ({option.dial})
+                  </option>
+                ))}
+              </select>
+            </div>
             <input
               id={`${id}-phone`}
               type="tel"
@@ -194,7 +225,7 @@ export function WaitlistPhoneStep({
               }}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? errorId : undefined}
-              className="min-w-0 flex-[2_1_9rem] rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-4 py-3 text-[15px] text-white outline-none transition-[border-color,background-color] duration-200 placeholder:text-[rgba(255,255,255,0.4)] focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
+              className="w-0 min-w-0 flex-1 bg-transparent px-3.5 py-3 text-[15px] text-white outline-none placeholder:text-[rgba(255,255,255,0.4)]"
             />
           </div>
         </div>
