@@ -1,7 +1,3 @@
-"use client";
-
-import { motion, useReducedMotion } from "framer-motion";
-
 /** Apple mark, drawn inline so the badge carries no network weight. */
 function AppleGlyph() {
   return (
@@ -34,56 +30,49 @@ function PlayGlyph() {
 
 interface StoreBadgeProps {
   glyph: "apple" | "play";
-  eyebrow: string;
   name: string;
 }
 
 /**
- * The lit state is one `interact:` variant rather than a hover class and a
- * focus-visible class for each of the three properties — see the custom
- * variant in globals.css. Keyboard and pointer must not drift apart.
+ * The app is not in either store yet, so each badge is a disabled, non-link
+ * label: dimmed, no hover, out of the tab order, and read as "App Store,
+ * coming soon". When a store listing goes live, this becomes a link again.
  *
  * The badge goes full width below 560px so two of them stack instead of
  * wrapping into a ragged row.
  */
-function StoreBadge({ glyph, eyebrow, name }: StoreBadgeProps) {
-  const reduceMotion = useReducedMotion();
-
+function StoreBadge({ glyph, name }: StoreBadgeProps) {
   return (
-    <motion.a
-      href="#"
+    <span
+      data-store={glyph}
+      aria-disabled="true"
+      title={`${name} — coming soon`}
       className={
-        "inline-flex items-center gap-3 rounded-control border border-border-glass " +
-        "bg-glass-strong py-[11px] pr-5 pl-4 text-text-primary no-underline " +
-        "transition-[border-color,background-color,box-shadow] duration-[250ms] ease-[ease] " +
-        "interact:border-border-accent-strong interact:bg-[rgba(168,85,247,0.12)] " +
-        "interact:shadow-[0_0_30px_-14px_var(--color-accent-purple)] " +
+        "inline-flex cursor-not-allowed items-center gap-3 rounded-control border border-dashed " +
+        "border-border-glass bg-glass-strong py-[11px] pr-4 pl-4 text-text-primary opacity-60 select-none " +
         "upto-560:flex-[1_1_100%]"
       }
-      whileHover={reduceMotion ? undefined : { y: -3 }}
-      whileTap={reduceMotion ? undefined : { scale: 0.97, y: 0 }}
-      transition={{ type: "spring", stiffness: 420, damping: 26, mass: 0.6 }}
     >
-      <span className="grid h-6 w-6 place-items-center text-text-primary">
+      <span className="grid h-6 w-6 shrink-0 place-items-center text-[rgba(255,255,255,0.7)]">
         {glyph === "apple" ? <AppleGlyph /> : <PlayGlyph />}
       </span>
       <span className="grid gap-px text-left">
-        <span className="text-[10px] tracking-[0.06em] text-[rgba(255,255,255,0.5)]">
-          {eyebrow}
+        <span className="text-[10px] tracking-[0.06em] text-[rgba(255,255,255,0.5)] uppercase">
+          Coming soon
         </span>
         <span className="font-display text-[15px] leading-[1.15] font-medium">
           {name}
         </span>
       </span>
-    </motion.a>
+    </span>
   );
 }
 
 export function StoreBadges() {
   return (
     <div className="flex flex-wrap gap-3">
-      <StoreBadge glyph="apple" eyebrow="Download on the" name="App Store" />
-      <StoreBadge glyph="play" eyebrow="Get it on" name="Google Play" />
+      <StoreBadge glyph="apple" name="App Store" />
+      <StoreBadge glyph="play" name="Google Play" />
     </div>
   );
 }

@@ -147,8 +147,21 @@
 
   /* ---------- The way to do it ---------- */
 
+  /*
+    minmax(0, 1fr), not the implicit `auto` column. An auto column never
+    shrinks below its widest child's min-content, and the link bar's
+    min-content is the whole address on one line (nowrap) -- on the live
+    host that is ~440px, so on a phone the button, the bar and the tiles
+    all ran off the right edge of the panel. Measured.
+  */
+  .share-side,
+  .share-actions {
+    min-width: 0;
+  }
+
   .share-actions {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
 
@@ -387,6 +400,11 @@
     .share-main-hint {
       display: none;
     }
+
+    /* Two faces, so the bubble keeps "Knock knock" on one line. */
+    .share-face:nth-child(3) {
+      display: none;
+    }
   }
 
   /* Narrow: icon above the words, so no label is ever squeezed. */
@@ -400,11 +418,52 @@
         "hint";
       row-gap: 6px;
       align-items: start;
+      /* Rows stay packed at the top; otherwise a tile stretched to its
+         neighbour's height (a two-line hint) spreads its rows apart and
+         the labels in one row of tiles stop lining up. */
+      align-content: start;
     }
 
     .share-tile-label,
     .share-tile-hint {
       align-self: start;
+    }
+  }
+
+  /* Phones: smaller faces and bubble so the knock stays on its lines, and a
+     tighter copy button so the address keeps some room in the bar. */
+  @media (max-width: 420px) {
+    .share-knock {
+      gap: 10px;
+    }
+
+    .share-face {
+      width: 38px;
+      height: 38px;
+      margin-left: -10px;
+    }
+
+    .share-bubble {
+      padding: 9px 13px 10px;
+      font-size: 13px;
+    }
+
+    .share-bubble small {
+      font-size: 12px;
+    }
+
+    .share-link {
+      gap: 8px;
+      padding-left: 12px;
+    }
+
+    .share-link-url {
+      font-size: 13.5px;
+    }
+
+    .share-copy-btn {
+      padding: 0 13px;
+      font-size: 13px;
     }
   }
 

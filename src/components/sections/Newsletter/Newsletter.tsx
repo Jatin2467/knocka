@@ -41,7 +41,7 @@ export function Newsletter() {
           <span className="newsletter-arc-ring newsletter-arc-ring-wide" />
         </span>
 
-        <div className="relative z-[2] max-w-[clamp(280px,46vw,560px)]">
+        <div className="relative z-[2] max-w-[clamp(280px,46vw,560px)] upto-900:max-w-[560px]">
           {/* delay-* utilities rather than data-aos-delay: AOS's delay rules
               live in the stylesheet we deliberately do not import. */}
           <p
@@ -78,7 +78,7 @@ export function Newsletter() {
             <EmailSignup
               label="Your email address"
               buttonLabel="Join the Waitlist"
-              className="max-w-[clamp(280px,34vw,470px)]"
+              className="max-w-[clamp(280px,34vw,470px)] upto-900:max-w-[470px]"
             />
             <p className="text-[11px] tracking-[0.16em] text-[rgba(255,255,255,0.5)] uppercase">
               Coming soon to iOS and Android

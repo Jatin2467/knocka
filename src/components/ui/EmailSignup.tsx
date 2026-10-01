@@ -258,6 +258,11 @@ export function EmailSignup({
     );
   }
 
+  /*
+    The field keeps at least 220px. Where the field and the button cannot both
+    fit, the button wraps underneath, and both then grow to the full width, so
+    a phone gets two full-width controls rather than a squeezed field.
+  */
   return (
     <form
       className={cn("relative flex w-full flex-wrap items-center gap-3", className)}
@@ -279,13 +284,13 @@ export function EmailSignup({
         aria-invalid={status.kind === "error" || undefined}
         aria-describedby={status.kind === "error" ? errorId : undefined}
         onInput={() => status.kind === "error" && setStatus({ kind: "idle" })}
-        className="min-w-0 flex-1 rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-5 py-[15px] text-body leading-[normal] text-white outline-none transition-[border-color,background-color] duration-200 placeholder:text-[rgba(255,255,255,0.5)] focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
+        className="min-w-0 flex-[1_1_220px] rounded-control border border-[rgba(255,255,255,0.24)] bg-[rgba(9,6,18,0.32)] px-5 py-[15px] text-body leading-[normal] text-white outline-none transition-[border-color,background-color] duration-200 placeholder:text-[rgba(255,255,255,0.5)] focus-visible:border-[rgba(255,255,255,0.6)] focus-visible:bg-[rgba(9,6,18,0.5)]"
       />
       <Button
         type="submit"
         variant="primary"
         size="lg"
-        className="shrink-0 shadow-[0_18px_40px_-16px_rgba(12,4,32,0.85)] disabled:cursor-wait disabled:opacity-70"
+        className="flex-[1_0_auto] shadow-[0_18px_40px_-16px_rgba(12,4,32,0.85)] disabled:cursor-wait disabled:opacity-70"
         arrow={!sending}
         disabled={sending}
       >
