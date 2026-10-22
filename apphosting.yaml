@@ -46,30 +46,36 @@ env:
     value: knocka-landing
     availability: [RUNTIME]
 
-  # --- Waitlist email (Nodemailer, Gmail SMTP) ---------------------------------
+  # --- Waitlist email (Nodemailer, HostGator cPanel SMTP) ----------------------
   # /api/waitlist answers 503 "Signups are paused" unless SMTP_HOST, SMTP_USER,
   # SMTP_PASS and WAITLIST_OWNER_EMAIL are all present at RUNTIME.
   # SMTP_SECURE is deliberately unset: port 465 implies implicit TLS.
+  # SMTP_HOST is the cPanel server's own hostname (50.6.245.92, certificate
+  # *.hostgator.com), so sending does not depend on weknocka.com's DNS. Until
+  # 2026-10-22 mail.weknocka.com was a CNAME to Titan; it now points at this
+  # server too and may replace this value once that has settled.
   - variable: SMTP_HOST
-    value: smtp.gmail.com
+    value: sh00188.hostgator.com
     availability: [RUNTIME]
   - variable: SMTP_PORT
     value: "465"
     availability: [RUNTIME]
   - variable: SMTP_USER
-    value: jatin.apl1234@gmail.com
+    value: knocka@weknocka.com
     availability: [RUNTIME]
   - variable: MAIL_FROM
-    value: "Knocka <jatin.apl1234@gmail.com>"
+    value: "Knocka <knocka@weknocka.com>"
     availability: [RUNTIME]
   - variable: WAITLIST_OWNER_EMAIL
-    value: jatin.apl1234@gmail.com
+    value: knocka@weknocka.com
     availability: [RUNTIME]
 
-  # The password lives in Secret Manager (secret SMTP_PASS, created 2026-10-01,
-  # read access granted to the backend's service account). Value never in Git.
+  # The cPanel mailbox password lives in Secret Manager (secret
+  # CPANEL_SMTP_PASS, read access granted to the backend's service account).
+  # Value never in Git. The old Gmail secret SMTP_PASS is kept for rollback:
+  # to roll back, restore the Gmail values above and point this at SMTP_PASS.
   - variable: SMTP_PASS
-    secret: SMTP_PASS
+    secret: CPANEL_SMTP_PASS
     availability: [RUNTIME]
 
   # --- Firebase App Check for the waitlist API -------------------------------

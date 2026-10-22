@@ -65,7 +65,7 @@ Needed at **BUILD and RUNTIME** (Next inlines `NEXT_PUBLIC_` at build). Already 
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `SMTP_HOST` | yes | e.g. `smtp.gmail.com` |
+| `SMTP_HOST` | yes | `sh00188.hostgator.com` (cPanel server; `mail.weknocka.com` points at Titan) |
 | `SMTP_PORT` | no (465) | |
 | `SMTP_USER` | yes | sending account |
 | `MAIL_FROM` | no | defaults to `"Knocka" <SMTP_USER>` |
@@ -77,17 +77,17 @@ Needed at **BUILD and RUNTIME** (Next inlines `NEXT_PUBLIC_` at build). Already 
 
 | Variable | Value |
 | --- | --- |
-| `SMTP_PASS` | `<SECRET — configure in Firebase/App Hosting>` (Gmail App Password) |
+| `SMTP_PASS` | Secret `CPANEL_SMTP_PASS`: the cPanel mailbox password of `knocka@weknocka.com`. The old Gmail secret `SMTP_PASS` is kept for rollback only. |
 
 ## 7. Setting the secret
 
 ```
-firebase apphosting:secrets:set SMTP_PASS --project knocka-75c63
+firebase apphosting:secrets:set CPANEL_SMTP_PASS --project knocka-75c63
 ```
-Paste the value when prompted (it is not echoed or stored in the repo) and grant backend `knocka` access when asked. Only then uncomment in `apphosting.yaml` (a reference to a missing secret fails the rollout):
+Paste the value when prompted (it is not echoed or stored in the repo) and grant backend `knocka` access when asked. `apphosting.yaml` maps it to the variable the code reads (a reference to a missing secret fails the rollout):
 ```yaml
 - variable: SMTP_PASS
-  secret: SMTP_PASS
+  secret: CPANEL_SMTP_PASS
   availability: [RUNTIME]
 ```
 Never put the value in `apphosting.yaml`, `.env.example` or Git. Local development uses `.env.local` (git-ignored).
@@ -105,13 +105,13 @@ The record is written first; it decides what happens next. Nodemailer is unchang
 | Firestore write fails | none | none | 502, generic message |
 | Production without `FIRESTORE_DATABASE_ID` | none | none | 503 "paused" (fails closed: no duplicate check and no shared cap without the database) |
 
-**Outbound mail cap.** Every instance reserves its messages from one counter in the landing database, `mailQuota/{UTC date}` (field `sent`), inside a transaction, before it sends. Default 300 messages a day (2 per signup, so 150 signups), under Gmail's roughly 500. Override with `WAITLIST_MAIL_DAILY_CAP`. `WAITLIST_MAIL_QUOTA_SCOPE` prefixes the counter's ID so a test can use its own; never set it in production. One small document per day accumulates; delete old ones whenever you like.
+**Outbound mail cap.** Every instance reserves its messages from one counter in the landing database, `mailQuota/{UTC date}` (field `sent`), inside a transaction, before it sends. Default 300 messages a day (2 per signup, so 150 signups), under the shared-hosting sending limits. Override with `WAITLIST_MAIL_DAILY_CAP`. `WAITLIST_MAIL_QUOTA_SCOPE` prefixes the counter's ID so a test can use its own; never set it in production. One small document per day accumulates; delete old ones whenever you like.
 
 **Who is the visitor (rate limiting).** `X-Forwarded-For` is never used: its leftmost value is whatever the sender typed. The limiter's identity is the `x-fah-client-ip` header that App Hosting's proxy reportedly sets (per a third-party source, not Firebase's own documentation; verified on each deploy, see below), believed only when `FIREBASE_CONFIG` is present (set by the platform at runtime, never by a visitor). Missing or invalid header means one shared "unidentified" bucket (too strict, never unlimited); IPv6 visitors are bucketed by /64; outside App Hosting everything is one "local" bucket. Limits: 5 attempts per visitor per 10 minutes on each of the two routes, plus a 300 per 10 minutes per-instance ceiling on `/api/waitlist` whoever is asking. Counters are per instance (App Hosting runs up to 2), so they are a first line only; the Firestore mail cap is the shared one.
 
 **Verify after every deploy that the platform really overwrites the header.** From any machine, send 6 requests with an invalid email and a different forged `x-fah-client-ip: 10.7.7.N` each: `curl -s -o /dev/null -w "%{http_code} " -X POST <site>/api/waitlist -H 'content-type: application/json' -H "x-fah-client-ip: 10.7.7.$i" -d '{"email":"not-an-email","source":"footer"}'`. If the platform overwrites the header, all six share your real identity and the **6th returns 429**. If the 6th returns 400, the header can be forged: stop and switch the identity source. (Invalid emails change nothing; wait 10 minutes before repeating.)
 
-**Mail logging.** Each message logs one line: `[waitlist] Mail stage=send to=owner|confirmation accepted. reply="250 …"` or `… failed. code=… smtp=… message="…"`. Only the code, SMTP reply code, command and first message line are logged, with `SMTP_PASS` redacted. Read them in Cloud Logging for Cloud Run service `knocka` (us-east4). A Gmail login failure shows as `535-5.7.8 Username and Password not accepted`: the `SMTP_PASS` secret is not a valid App Password. Fix by re-running `firebase apphosting:secrets:set SMTP_PASS` and starting a new rollout, because a rollout pins the secret version it was built with.
+**Mail logging.** Each message logs one line: `[waitlist] Mail stage=send to=owner|confirmation accepted. reply="250 …"` or `… failed. code=… smtp=… message="…"`. Only the code, SMTP reply code, command and first message line are logged, with `SMTP_PASS` redacted. Read them in Cloud Logging for Cloud Run service `knocka` (us-east4). A login failure shows as `535 Incorrect authentication data`: the `CPANEL_SMTP_PASS` secret is not the mailbox's current cPanel password. Fix by re-running `firebase apphosting:secrets:set CPANEL_SMTP_PASS` and starting a new rollout, because a rollout pins the secret version it was built with.
 
 **Step 2: optional mobile number (collect and store only; no SMS is sent and no SMS provider is connected).**
 - After a *new* signup the API answers `{ ok: true, offerPhone: true }` and the form shows "You're on the Knocka list!" with an optional number and SMS consent. A repeat of an existing address gets plain `{ ok: true }` and no step 2.
@@ -128,7 +128,7 @@ The record is written first; it decides what happens next. Nodemailer is unchang
 ## 10. Still to do (needs approval)
 
 1. ~~Create database `knocka-landing`~~ done. ~~Deploy its rules~~ done. ~~Create the backend~~ done (`knocka`).
-2. ~~Create the `SMTP_PASS` secret~~ done (Secret Manager, version 1; the backend's service account can read it; referenced in `apphosting.yaml`). Non-secret mail settings are set in `apphosting.yaml` (Gmail `smtp.gmail.com:465`; sender, `MAIL_FROM` and owner are `jatin.apl1234@gmail.com`). `SMTP_SECURE` is intentionally unset (port 465 implies TLS). If any of these is missing at runtime, `/api/waitlist` answers 503.
+2. ~~Create the `SMTP_PASS` secret~~ done (Secret Manager, version 1; the backend's service account can read it; referenced in `apphosting.yaml`). Non-secret mail settings are set in `apphosting.yaml`. Since 2026-10-22: HostGator cPanel `sh00188.hostgator.com:465`, sender, `MAIL_FROM` and owner `knocka@weknocka.com`, password in secret `CPANEL_SMTP_PASS` (Gmail secret `SMTP_PASS` kept for rollback). `SMTP_SECURE` is intentionally unset (port 465 implies TLS). If any of these is missing at runtime, `/api/waitlist` answers 503.
 3. Commit this work and push to `main`. That starts the rollout. (Or, from this repo: `firebase deploy --only apphosting`.)
 4. After the rollout, submit one test signup on the live URL and check `waitlist/` in `knocka-landing`; delete the test document.
 5. Add the custom domain in App Hosting when ready.

@@ -9,7 +9,7 @@ import type { WaitlistSource } from "@/lib/waitlist";
  * Waitlist email over SMTP, via Nodemailer.
  *
  * Every setting comes from the environment (see .env.example), so the same
- * code sends through Gmail today and any other SMTP provider — Resend, Brevo,
+ * code sends through HostGator cPanel today and any other SMTP provider — Resend, Brevo,
  * SES, Postmark — tomorrow by changing four variables, not code.
  *
  * `server-only` makes importing this from a Client Component a build error:
