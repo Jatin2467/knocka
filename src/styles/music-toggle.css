@@ -1,0 +1,33 @@
+/* ============================================================
+   MUSIC TOGGLE
+
+   The floating control from components/animation/BackgroundMusic.tsx.
+   Its look is utility classes on the button; this file holds only
+   the one-time hint: the first time the music starts, the toggle
+   glows once so the visitor sees where to switch it off.
+============================================================ */
+
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    .music-toggle[data-hint]::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.6), 0 0 18px rgba(168, 85, 247, 0.55);
+      animation: music-toggle-hint 1.6s ease-out both;
+      pointer-events: none;
+    }
+  }
+
+  @keyframes music-toggle-hint {
+    0%,
+    100% {
+      opacity: 0;
+    }
+
+    30% {
+      opacity: 1;
+    }
+  }
+}

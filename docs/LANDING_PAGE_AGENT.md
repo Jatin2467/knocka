@@ -1469,7 +1469,7 @@ portrait plates standing on either side of it.**
 - **Four circles** in the corners, at four sizes.
 - **Six different coloured grounds.** Five of the images are cutouts with
   real alpha, so the colour shows through everywhere the person is not.
-  `avatar5.jpg` is the exception — a JPEG on white — so it fills its
+  `avatar5.webp` is the exception — a JPEG on white — so it fills its
   circle edge to edge and *its own white ground becomes its colour*, the
   sixth of six. Nothing about the markup differs between them.
 

@@ -140,7 +140,7 @@ export const CAST: readonly Profile[] = [
     id: "kai",
     // The one JPEG, and the one image with no alpha. It fills its bubble, so
     // its own white ground is its colour — the sixth of six.
-    src: `${IMG}/avatar5.jpg`,
+    src: `${IMG}/avatar5.webp`,
     w: 9999,
     h: 6842,
     name: "Kai",

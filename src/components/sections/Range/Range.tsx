@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { PointerEvent, ReactNode } from "react";
 
 import { KnockMarks } from "./KnockMarks";
+import { KnockPrompt } from "./KnockPrompt";
 import { CAST, STEPS } from "./cast";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
@@ -131,6 +132,8 @@ export function Range() {
                 <span className="text-gradient">Don&apos;t text, arrive.</span>
               </RevealLine>
             </h1>
+
+            <KnockPrompt />
           </div>
 
           {/*

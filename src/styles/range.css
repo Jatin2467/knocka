@@ -236,6 +236,157 @@
     color: #f9a8d4;
   }
 
+  /* ---------- The knock prompt ---------- */
+
+  /*
+    The knock prompt, under the title. Same pill and type as the two knock
+    marks lower down, but an outline instead of a fill, so it reads as an
+    invitation rather than as a mark. It sits in the head's own flow, where
+    nothing follows it, and once the music is on it fades out in place: the
+    box stays, so nothing moves.
+
+    The margin is measured, not chosen: at 1024 wide anything larger puts
+    its corner on the band.
+  */
+  .knock-prompt {
+    position: relative;
+    margin-top: clamp(10px, 1.4vh, 18px);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      opacity 0.6s ease 0.9s,
+      visibility 0s linear 1.5s;
+  }
+
+  .knock-prompt[data-done] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .knock-prompt-body {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    border-radius: var(--radius-pill);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--color-accent-lilac);
+    font-family: var(--font-display);
+    font-size: clamp(10px, 0.95vw, 13px);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition:
+      border-color 0.3s ease,
+      background-color 0.3s ease,
+      color 0.3s ease,
+      scale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Hover and focus take the colour of the second knock, the one that lands. */
+  .knock-prompt:hover .knock-prompt-body,
+  .knock-prompt:focus-visible .knock-prompt-body {
+    border-color: rgba(236, 72, 153, 0.55);
+    background: rgba(236, 72, 153, 0.12);
+    color: #f9a8d4;
+  }
+
+  .knock-prompt:focus-visible {
+    outline: none;
+  }
+
+  .knock-prompt:focus-visible .knock-prompt-body {
+    outline: 2px solid var(--color-accent-violet);
+    outline-offset: 3px;
+  }
+
+  .knock-prompt:active .knock-prompt-body {
+    scale: 0.96;
+  }
+
+  .knock-prompt-rings,
+  .knock-prompt-rings i {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .knock-prompt-rings i {
+    --ripple: 1.45;
+
+    border: 1px solid rgba(236, 72, 153, 0.7);
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* Waits for the title's three lines to finish revealing. */
+    .knock-prompt-body {
+      animation: knock-prompt-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+    }
+
+    /*
+      A slow breath of light, so the eye finds it without anything jumping.
+      Opacity on a still layer only: compositor work, no repaint, which keeps
+      the DNA canvas behind this section at full rate.
+    */
+    .knock-prompt-body::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      box-shadow: 0 0 18px rgba(168, 85, 247, 0.45);
+      opacity: 0;
+      animation: knock-prompt-breathe 2.8s ease-in-out 2.4s infinite;
+      pointer-events: none;
+    }
+
+    .knock-prompt[data-done] .knock-prompt-body::after {
+      animation: none;
+    }
+
+    /* Two rings, the knock's own gap apart. */
+    .knock-prompt-rings i {
+      animation: knock-ripple 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .knock-prompt-rings i + i {
+      animation-delay: var(--beat, 0.34s);
+    }
+  }
+
+  @keyframes knock-prompt-in {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes knock-prompt-breathe {
+    0%,
+    100% {
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
   /* ---------- A profile ---------- */
 
   .knock-profile {
@@ -731,6 +882,11 @@
     .range-knock {
       opacity: 1 !important;
       transform: none !important;
+    }
+
+    /* Without JS there is no music to wake. */
+    .knock-prompt {
+      display: none;
     }
   }
 }
