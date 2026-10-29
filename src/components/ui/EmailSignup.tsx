@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { WaitlistInvite } from "@/components/ui/WaitlistInvite";
 import { APP_CHECK_HEADER, getAppCheckToken, warmAppCheck } from "@/lib/app-check";
 import { cn } from "@/lib/cn";
 import { incomingReferral, rememberOwnReferral } from "@/lib/referral";
@@ -45,13 +46,13 @@ export interface EmailSignupProps {
  * "joined" is the end: the visitor is on the list and the card says so. A new
  * signup's card also carries one button that opens the optional phone form
  * (`offerPhone`); a repeat of an address already on the list gets the card
- * without it. Inviting friends is not a step here — the Share section below
- * carries the visitor's invite link once they have joined.
+ * without it. Once a number is saved, the card ends with the visitor's invite
+ * link (`referralCode`); the Share section below carries the same link.
  */
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "joined"; email: string; offerPhone: boolean }
+  | { kind: "joined"; email: string; offerPhone: boolean; referralCode: string | null }
   | { kind: "error"; message: string };
 
 /** Each variant lives in exactly one place on the page. */
@@ -126,11 +127,13 @@ export function EmailSignup({
 
       if (response.ok && result?.ok) {
         // From here every share on the page carries this visitor's invite link.
-        if (isReferralCode(result.referralCode)) rememberOwnReferral(result.referralCode);
+        const referralCode = isReferralCode(result.referralCode) ? result.referralCode : null;
+        if (referralCode) rememberOwnReferral(referralCode);
         setStatus({
           kind: "joined",
           email: normalizeEmail(payload.email) ?? payload.email,
           offerPhone: result.offerPhone === true,
+          referralCode,
         });
       } else {
         setStatus({
@@ -152,6 +155,7 @@ export function EmailSignup({
       <JoinedCard
         email={status.email}
         offerPhone={status.offerPhone}
+        referralCode={status.referralCode}
         variant={variant}
         className={className}
       />
@@ -284,7 +288,9 @@ type PhonePhase = "offer" | "open" | "texts" | "noTexts";
  *
  * For a new signup it carries exactly one action, Add my mobile number, which
  * opens the phone form in place inside the same card. Cancel folds it back to
- * the button; a saved number replaces both with a one-line confirmation.
+ * the button. A saved number replaces both with a one-line confirmation and
+ * the invite block — the visitor who has just given a number is the one most
+ * likely to bring friends.
  *
  * Focus follows the visitor: the heading on arrival (the form they were in has
  * gone), the number field when the form opens, the button again on cancel.
@@ -292,11 +298,13 @@ type PhonePhase = "offer" | "open" | "texts" | "noTexts";
 function JoinedCard({
   email,
   offerPhone,
+  referralCode,
   variant,
   className,
 }: {
   email: string;
   offerPhone: boolean;
+  referralCode: string | null;
   variant: EmailSignupVariant;
   className?: string;
 }) {
@@ -374,15 +382,15 @@ function JoinedCard({
       )}
 
       {(phase === "texts" || phase === "noTexts") && (
-        <p
-          role="status"
-          className="mt-4 mb-0 border-t border-[rgba(255,255,255,0.12)] pt-4 text-[13px]/[1.5] text-white"
-        >
-          ✦{" "}
-          {phase === "texts"
-            ? "Number added. We'll text you when Knocka launches."
-            : "Number saved. We won't text you — we'll email you at launch."}
-        </p>
+        <div className="mt-4 border-t border-[rgba(255,255,255,0.12)] pt-4">
+          <p role="status" className="m-0 text-[13px]/[1.5] text-white">
+            ✦{" "}
+            {phase === "texts"
+              ? "Number added. We'll text you when Knocka launches."
+              : "Number saved. We won't text you — we'll email you at launch."}
+          </p>
+          {referralCode && <WaitlistInvite referralCode={referralCode} variant={variant} />}
+        </div>
       )}
     </section>
   );
