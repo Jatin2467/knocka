@@ -99,3 +99,15 @@ env:
   - variable: APP_CHECK_ENFORCE
     value: "true"
     availability: [RUNTIME]
+
+  # --- Referrals and the waitlist counter ------------------------------------
+  # Public address for the invite link in the confirmation email. Never read
+  # from the request. Change it when the custom domain goes live.
+  - variable: SITE_URL
+    value: https://knocka--knocka-75c63.us-east4.hosted.app
+    availability: [RUNTIME]
+  # "N people are waiting to Knock" appears once the list has this many
+  # signups. Lower it only when the number is worth showing.
+  - variable: WAITLIST_COUNTER_MIN
+    value: "1000"
+    availability: [RUNTIME]

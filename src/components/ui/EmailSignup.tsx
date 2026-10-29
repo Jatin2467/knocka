@@ -1,12 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { WaitlistReferralStep } from "@/components/ui/WaitlistReferralStep";
 import { APP_CHECK_HEADER, getAppCheckToken, warmAppCheck } from "@/lib/app-check";
 import { cn } from "@/lib/cn";
+import { incomingReferral, rememberOwnReferral } from "@/lib/referral";
 import {
+  isReferralCode,
   normalizeEmail,
   type WaitlistRequest,
   type WaitlistResponse,
@@ -38,18 +41,26 @@ export interface EmailSignupProps {
 }
 
 /**
- * idle -> sending -> phone (step 2, new signups only) -> added | sent
- *                 \-> sent (a repeat signup goes straight here)
- * "sent" is the finished state; skipping step 2 lands there too, and it is
- * never offered again for the same signup.
+ * idle -> sending -> phone (step 2, new signups only) -> invite (step 3)
+ *                 \-> done (a repeat signup goes straight here)
+ * Adding a number and skipping both lead to step 3, which is the finished
+ * state for a new signup; neither earlier step is offered again. Without a
+ * referral code (no database, on a laptop) step 3 is left out.
  */
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "phone"; email: string }
-  | { kind: "added" }
-  | { kind: "sent" }
+  | { kind: "phone"; email: string; referralCode: string | null }
+  | { kind: "invite"; referralCode: string; note: string }
+  | { kind: "done"; note: string }
   | { kind: "error"; message: string };
+
+/** What the visitor is told once they are on the list, by how step 2 went. */
+const NOTE = {
+  joined: "You're on the list — check your inbox. We'll knock when your wave opens.",
+  texts: "Number added. You're on the list, and we'll text you when Knocka launches.",
+  noTexts: "Number saved. You're on the list — we won't text you, we'll email you at launch.",
+} as const;
 
 /** Each variant lives in exactly one place on the page. */
 const SOURCE: Record<EmailSignupVariant, WaitlistSource> = {
@@ -83,6 +94,12 @@ export function EmailSignup({
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const sending = status.kind === "sending";
 
+  // Remember a friend's `?ref=` on arrival, so it still counts if the visitor
+  // joins on a later visit.
+  useEffect(() => {
+    incomingReferral();
+  }, []);
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (sending) return;
@@ -92,6 +109,7 @@ export function EmailSignup({
       email: String(form.get("email") ?? ""),
       source: SOURCE[variant],
       company: String(form.get("company") ?? ""),
+      ref: incomingReferral() ?? undefined,
     };
 
     setStatus({ kind: "sending" });
@@ -115,10 +133,16 @@ export function EmailSignup({
         .catch(() => null)) as WaitlistResponse | null;
 
       if (response.ok && result?.ok) {
+        const referralCode = isReferralCode(result.referralCode) ? result.referralCode : null;
+        if (referralCode) rememberOwnReferral(referralCode);
         setStatus(
           result.offerPhone
-            ? { kind: "phone", email: normalizeEmail(payload.email) ?? payload.email }
-            : { kind: "sent" },
+            ? {
+                kind: "phone",
+                email: normalizeEmail(payload.email) ?? payload.email,
+                referralCode,
+              }
+            : { kind: "done", note: NOTE.joined },
         );
       } else {
         setStatus({
@@ -136,36 +160,32 @@ export function EmailSignup({
   };
 
   if (status.kind === "phone") {
+    const { referralCode } = status;
+    const finish = (note: string) =>
+      setStatus(referralCode ? { kind: "invite", referralCode, note } : { kind: "done", note });
     return (
       <WaitlistPhoneStep
         email={status.email}
         variant={variant}
         className={className}
-        onAdded={() => setStatus({ kind: "added" })}
-        onSkip={() => setStatus({ kind: "sent" })}
+        onAdded={(textsOk) => finish(textsOk ? NOTE.texts : NOTE.noTexts)}
+        onSkip={() => finish(NOTE.joined)}
       />
     );
   }
 
-  if (status.kind === "added") {
+  if (status.kind === "invite") {
     return (
-      <p
-        className={cn(
-          "m-0 text-[14px]",
-          variant === "panel"
-            ? "text-[rgba(255,255,255,0.82)]"
-            : "text-text-secondary",
-          className,
-        )}
-        role="status"
-      >
-        ✦ Number added. You&apos;re on the list, and we&apos;ll text you when
-        Knocka launches.
-      </p>
+      <WaitlistReferralStep
+        referralCode={status.referralCode}
+        note={status.note}
+        variant={variant}
+        className={className}
+      />
     );
   }
 
-  if (status.kind === "sent") {
+  if (status.kind === "done") {
     return (
       <p
         className={cn(
@@ -177,8 +197,7 @@ export function EmailSignup({
         )}
         role="status"
       >
-        ✦ You&apos;re on the list — check your inbox. We&apos;ll knock when
-        your wave opens.
+        ✦ {status.note}
       </p>
     );
   }

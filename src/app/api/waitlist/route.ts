@@ -7,16 +7,18 @@ import {
   describeMailError,
   getMailConfig,
   sendWaitlistEmails,
+  type Signup,
 } from "@/lib/server/waitlist-mail";
 import { saveWaitlistSignup } from "@/lib/server/waitlist-store";
 import {
+  isReferralCode,
   isWaitlistSource,
   normalizeEmail,
   type WaitlistResponse,
 } from "@/lib/waitlist";
 
 /**
- * POST /api/waitlist — { email, source, company? } -> { ok, offerPhone? } | { ok, error }
+ * POST /api/waitlist — { email, source, company?, ref? } -> { ok, offerPhone?, referralCode? } | { ok, error }
  *
  * Checks run in this order: body size and shape, App Check token, rate limit,
  * honeypot, address, mail settings, then the record, and only then any email.
@@ -26,7 +28,9 @@ import {
  *
  *  - new address: the record is created, then the owner is notified and the
  *    visitor is sent a confirmation (two messages, taken from the shared daily
- *    cap first). `offerPhone` lets the form go on to step 2.
+ *    cap first). `offerPhone` lets the form go on to step 2, and
+ *    `referralCode` is the visitor's own invite code for step 3. A valid
+ *    `ref` credits the friend whose link brought them.
  *  - address already on the list: `{ ok: true }`, nothing written, no email.
  *  - daily mail cap spent: the record is still saved, no email goes out.
  *
@@ -96,6 +100,8 @@ export async function POST(request: NextRequest) {
     return reply({ ok: false, error: "Please enter a valid email address." }, 400);
   }
   const source = isWaitlistSource(body.source) ? body.source : "newsletter";
+  // A malformed code is dropped, not refused: the visitor still joins.
+  const ref = isReferralCode(body.ref) ? body.ref : null;
 
   const settings = getMailConfig();
   if (!settings.ok) {
@@ -106,13 +112,13 @@ export async function POST(request: NextRequest) {
   }
 
   const userAgent = request.headers.get("user-agent");
-  const signup = { email, source, userAgent, at: new Date() };
+  const signup: Signup = { email, source, userAgent, at: new Date() };
 
   // The record comes first, because it decides everything after it: a repeat
   // of an address on the list must not cost another email.
   let stored: Awaited<ReturnType<typeof saveWaitlistSignup>>;
   try {
-    stored = await saveWaitlistSignup({ email, source, userAgent });
+    stored = await saveWaitlistSignup({ email, source, userAgent, ref });
   } catch (error) {
     console.error(`[waitlist] Firestore write failed for ${email}.`, error);
     return reply(
@@ -122,9 +128,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Already on the list: same friendly answer, no record, no email at all.
-  if (stored === "duplicate") return reply({ ok: true });
+  if (stored.status === "duplicate") return reply({ ok: true });
 
-  if (stored === "skipped") {
+  if (stored.status === "skipped") {
     // No database configured. Fine on a laptop, where the email is the only
     // record; in production it means a misconfiguration, and without the
     // database there is no duplicate check and no shared mail cap, so send
@@ -147,6 +153,8 @@ export async function POST(request: NextRequest) {
 
   // A new record. It is saved whatever happens to the mail, so from here on
   // the visitor succeeds; mail trouble is logged, not shown.
+  signup.referralCode = stored.referralCode;
+  signup.referredBy = stored.referredBy;
   try {
     const slot = await reserveMail(MESSAGES_PER_SIGNUP);
     if (slot.status === "reserved") {
@@ -162,5 +170,5 @@ export async function POST(request: NextRequest) {
     console.error(`[waitlist] Email failed for ${email}. ${describeMailError(error)}`);
   }
 
-  return reply({ ok: true, offerPhone: true });
+  return reply({ ok: true, offerPhone: true, referralCode: stored.referralCode });
 }

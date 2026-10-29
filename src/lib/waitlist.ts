@@ -16,6 +16,8 @@ export interface WaitlistRequest {
    * bots usually do. Anything in it and the request is quietly dropped.
    */
   company?: string;
+  /** The code from the friend's referral link this visitor arrived with, if any. */
+  ref?: string;
 }
 
 export type WaitlistResponse =
@@ -27,6 +29,11 @@ export type WaitlistResponse =
        * answers plain `{ ok: true }`.
        */
       offerPhone?: boolean;
+      /**
+       * The new signup's own referral code (step 3), sent with `offerPhone`.
+       * Friends who join through `referralLink(origin, code)` count for them.
+       */
+      referralCode?: string;
     }
   | { ok: false; error: string };
 
@@ -37,7 +44,10 @@ export interface WaitlistPhoneRequest {
   phoneNumber: string;
   /** ISO 3166-1 alpha-2 code of the picked country, e.g. "US". */
   phoneCountry: string;
-  /** The checkbox. Must be exactly `true`. */
+  /**
+   * The SMS checkbox. Optional and separate from the number: a number saved
+   * without it is stored with `smsOptIn: false` and must never be texted.
+   */
   smsConsent: boolean;
 }
 
@@ -45,8 +55,52 @@ export type WaitlistPhoneResponse = { ok: true } | { ok: false; error: string };
 
 export const PHONE_INVALID_MESSAGE =
   "That doesn't look like a valid mobile number for the country you picked. Check it and try again.";
-export const PHONE_CONSENT_MESSAGE =
-  "Please tick the box to agree to receive texts.";
+
+/**
+ * The SMS consent wording, exactly as the checkbox shows it. The server stores
+ * this same string with every number, so each record says what was agreed to.
+ * Changing it changes what new records say; old records keep their own copy.
+ */
+export const SMS_CONSENT_TEXT =
+  "I agree to receive texts from Knocka. Message/data rates may apply. Reply STOP to opt out.";
+
+/* ------------------------------------------------------------------ */
+/*  Step 3: referrals                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Referral codes: 8 characters from an alphabet without look-alikes
+ * (no 0/o, 1/i/l), so a code that is read aloud or retyped survives.
+ */
+export const REFERRAL_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+export const REFERRAL_CODE_LENGTH = 8;
+const REFERRAL_CODE_PATTERN = new RegExp(
+  `^[${REFERRAL_ALPHABET}]{${REFERRAL_CODE_LENGTH}}$`,
+);
+
+export function isReferralCode(value: unknown): value is string {
+  return typeof value === "string" && REFERRAL_CODE_PATTERN.test(value);
+}
+
+/** `https://site/?ref=abcd2345`. `origin` has no trailing slash. */
+export function referralLink(origin: string, code: string): string {
+  return `${origin}/?ref=${code}`;
+}
+
+/**
+ * What inviting friends earns, as the page and the confirmation email show
+ * it. Only the count is recorded (`referralCount`); nothing grants these yet.
+ */
+export const REFERRAL_TIERS = [
+  { friends: 1, reward: "Early Access" },
+  { friends: 3, reward: "Founding Member badge" },
+  { friends: 5, reward: "Exclusive Founder avatar item" },
+] as const;
+
+/** GET /api/waitlist/count. `count` stays null until the list is big enough to show. */
+export interface WaitlistCountResponse {
+  count: number | null;
+}
 
 /** RFC 5321's limit on a whole address. */
 const EMAIL_MAX_LENGTH = 254;

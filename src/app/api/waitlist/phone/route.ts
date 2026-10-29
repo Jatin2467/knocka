@@ -5,7 +5,6 @@ import { normalizePhone } from "@/lib/server/phone";
 import { clientKey, createRateLimiter } from "@/lib/server/rate-limit";
 import { addWaitlistPhone } from "@/lib/server/waitlist-store";
 import {
-  PHONE_CONSENT_MESSAGE,
   PHONE_INVALID_MESSAGE,
   normalizeEmail,
   type WaitlistPhoneResponse,
@@ -15,10 +14,11 @@ import {
  * POST /api/waitlist/phone — { email, phoneNumber, phoneCountry, smsConsent } -> { ok } | { ok, error }
  *
  * Step 2 of the waitlist: the visitor who has just signed up may add a mobile
- * number and agree to texts. The number is checked against the picked country
- * and stored as E.164 on the existing `waitlist/{email}` record, nothing more —
- * no code is texted to verify it, no text is sent from here and no SMS
- * provider is involved.
+ * number and, separately, agree to texts. A number is not consent: without the
+ * ticked box it is stored with `smsOptIn: false`. The number is checked against
+ * the picked country and stored as E.164 on the existing `waitlist/{email}`
+ * record with the consent wording and status — no code is texted to verify it,
+ * no text is sent from here and no SMS provider is involved.
  *
  * Writes go through the Admin SDK on the server, like the signup; the browser
  * still has no Firestore access. Whether the record exists, is too old or
@@ -70,16 +70,14 @@ export async function POST(request: NextRequest) {
     return reply({ ok: false, error: PHONE_INVALID_MESSAGE }, 400);
   }
 
-  if (body.smsConsent !== true) {
-    return reply({ ok: false, error: PHONE_CONSENT_MESSAGE }, 400);
-  }
-
   let result;
   try {
     result = await addWaitlistPhone({
       email,
       phoneNumber: phone.e164,
       phoneCountry: phone.country,
+      // Only an explicit `true` is consent; anything else is a plain no.
+      smsOptIn: body.smsConsent === true,
     });
   } catch (error) {
     console.error(`[waitlist] Phone update failed for ${email}.`, error);

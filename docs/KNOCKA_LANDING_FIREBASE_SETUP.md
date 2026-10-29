@@ -33,7 +33,7 @@ Browser ── Next.js 16 (Firebase App Hosting, Cloud Run)
 
 - Server code: `src/lib/server/landing-firestore.ts` returns a handle **only** when `FIRESTORE_DATABASE_ID` is set, and **refuses** `(default)`. With the variable unset the Firestore write is skipped and email still works. `apphosting.yaml` sets it to `knocka-landing`.
 - Credentials: Application Default Credentials. On App Hosting this is the backend's service account `firebase-app-hosting-compute@knocka-75c63.iam.gserviceaccount.com` (no key file). It already holds `roles/firebase.sdkAdminServiceAgent`, which includes the Firestore entity permissions, so no extra IAM grant is needed. Note IAM is project-wide: the guard in code, not IAM, is what keeps the site off `(default)`. Locally: `gcloud auth application-default login`.
-- Data model: `waitlist/{email}` → `email`, `source`, `userAgent`, `createdAt`. The email is the document ID, so a repeat signup cannot create a second record.
+- Data model: `waitlist/{email}` → `email`, `source`, `userAgent`, `createdAt`, `referralCode`, `referredBy` (the code whose link brought them, or null), `referralCount`. The email is the document ID, so a repeat signup cannot create a second record. `waitlistReferrals/{code}` → `email`, `createdAt` maps an invite link's code to its owner. Records from before referrals have no referral fields.
 - Rules: `firestore.landing.rules` is **deny-all** for the client (the Admin SDK bypasses rules). The public can't read, create, update or delete anything. These rules are for `knocka-landing` only.
 
 ## 5. App Hosting status
@@ -98,10 +98,10 @@ The record is written first; it decides what happens next. Nodemailer is unchang
 
 | Case | Record | Email | Response |
 | --- | --- | --- | --- |
-| New address | created | owner notification + visitor confirmation (2 messages) | `{ ok: true, offerPhone: true }` |
+| New address | created | owner notification + visitor confirmation (2 messages) | `{ ok: true, offerPhone: true, referralCode }` |
 | Address already on the list | none | **none** | `{ ok: true }` |
-| New address, daily mail cap spent | created | none (logged: `Daily mail cap reached`) | `{ ok: true, offerPhone: true }` |
-| New address, SMTP fails | created | logged (sanitised) | `{ ok: true, offerPhone: true }` |
+| New address, daily mail cap spent | created | none (logged: `Daily mail cap reached`) | `{ ok: true, offerPhone: true, referralCode }` |
+| New address, SMTP fails | created | logged (sanitised) | `{ ok: true, offerPhone: true, referralCode }` |
 | Firestore write fails | none | none | 502, generic message |
 | Production without `FIRESTORE_DATABASE_ID` | none | none | 503 "paused" (fails closed: no duplicate check and no shared cap without the database) |
 
@@ -116,14 +116,22 @@ The record is written first; it decides what happens next. Nodemailer is unchang
 **Step 2: optional mobile number (collect and store only; no SMS is sent and no SMS provider is connected).**
 - After a *new* signup the API answers `{ ok: true, offerPhone: true }` and the form shows "You're on the Knocka list!" with an optional number and SMS consent. A repeat of an existing address gets plain `{ ok: true }` and no step 2.
 - The form has a country picker (all 245 countries from libphonenumber-js, with dial codes; the browser's language picks the default) and the number. **No OTP and no verification.**
-- `POST /api/waitlist/phone` `{ email, phoneNumber, phoneCountry, smsConsent: true }` updates the same `waitlist/{email}` record, writing only `phoneNumber` (E.164, e.g. `+12015550123`), `phoneCountry` (ISO code, e.g. `US`), `smsOptIn: true` and `smsConsentAt` (server timestamp, set only because consent was ticked). Email, source, userAgent and createdAt are never touched. Browsers still have no Firestore access. Older records with a number but no `phoneCountry` stay valid.
+- **SMS consent is separate from the number.** The checkbox is optional; a number saved without it is *not* permission to text.
+- `POST /api/waitlist/phone` `{ email, phoneNumber, phoneCountry, smsConsent }` updates the same `waitlist/{email}` record, writing only `phoneNumber` (E.164, e.g. `+12015550123`), `phoneCountry` (ISO code, e.g. `US`), `phoneAddedAt` (server timestamp), `smsOptIn` (true only if the box was ticked), `smsConsentText` (the exact checkbox wording shown, `SMS_CONSENT_TEXT` in `src/lib/waitlist.ts`) and, only when ticked, `smsConsentAt` (server timestamp). Email, source, userAgent, createdAt and the referral fields are never touched. Browsers still have no Firestore access. Older records have `smsOptIn: true` and `smsConsentAt` but no `smsConsentText`; the wording then was the same as today's.
+- **Only text numbers with `smsOptIn: true`.**
 - Validation uses libphonenumber-js: the number must be valid for the picked country (a `+` number must carry that country's code), and known non-mobile line types (landline, toll-free, premium) are refused. The browser checks with the small `min` metadata (loaded only after step 1); the server checks again with the full `max` metadata and decides.
 - The number can be added once, within 30 minutes of signup, on a record that has none. Any other case (no such record, too old, already has a number) answers the same generic 409.
 - Nothing is verified by text, so anyone can type any number. Before sending any SMS, add a double opt-in.
 
 ## 9. Share Knocka
 
-`src/components/sections/Share/` — native Web Share API where supported; WhatsApp (`wa.me`), Email (`mailto:`), Instagram/TikTok (copy link, then open the app) and Copy link everywhere. Shares only the site URL. No WhatsApp API, referrals or rewards.
+`src/components/sections/Share/` — native Web Share API where supported; WhatsApp (`wa.me`), Email (`mailto:`), Instagram/TikTok (copy link, then open the app) and Copy link everywhere. Shares the site URL, or the visitor's own invite link once they have joined (remembered in localStorage). No WhatsApp API.
+
+**Step 3: referrals.** After step 2 (added or skipped) the form shows "Move up the Knocka early-access list" with the visitor's invite link `<site>/?ref=<code>`, a Share Knocka button (system share sheet, or copy where there is none), and the tiers 1 friend → Early Access, 3 → Founding Member badge, 5 → Exclusive Founder avatar item. The confirmation email carries the same link (built from `SITE_URL`, never from the request).
+- A visitor arriving with `?ref=` has the code remembered in localStorage and sent with their signup. A new signup with a live code increments the referrer's `referralCount` in the same transaction that creates the record; an unknown code is ignored. The owner's notification shows "Referred by".
+- **Rewards are displayed only; nothing grants them.** Read `referralCount` at launch. Counts are of unverified email addresses, so check them before honouring a reward (e.g. only count referrals that later install or confirm).
+
+**Waitlist counter.** `GET /api/waitlist/count` returns `{ count }`, null until the list reaches `WAITLIST_COUNTER_MIN` (default 1000), so the banner's "N people are waiting to Knock." stays hidden until then. Cached 5 minutes per instance and at the CDN; one Firestore aggregation read per 1,000 records per refresh.
 
 ## 10. Still to do (needs approval)
 

@@ -16,7 +16,8 @@ const FACES = [
  * the footer's own language rather than another poster section, so it reads as
  * part of the page's close. The left side is the ask — a heading, a line, and
  * a small knock from the cast; the right is the way to do it, one tap per app.
- * Phase 2 shares the plain site URL only — no referral codes yet.
+ * It shares the plain site URL, or the visitor's invite link once they have
+ * joined the waitlist (see lib/referral.ts).
  *
  * A server component: the copy is static and the reveals are AOS. The
  * controls are a client component of their own (`ShareActions`).

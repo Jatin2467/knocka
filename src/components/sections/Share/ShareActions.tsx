@@ -8,16 +8,23 @@ import {
   type ReactNode,
 } from "react";
 
+import { copyText } from "@/lib/clipboard";
+import { inviteUrl, ownReferral, subscribeOwnReferral } from "@/lib/referral";
+
 /** Only the link is shared for now; the subject is just a label for mail. */
 const MAIL_SUBJECT = "Knocka";
 
 const noSubscribe = () => () => {};
 
-/** The site's own address, without path, query or hash. Empty on the server. */
+/**
+ * The site's own address, without path or hash — or, once this visitor has
+ * joined the waitlist, their invite link (`/?ref=code`), so sharing from here
+ * counts for them too. Empty on the server.
+ */
 const useSiteUrl = () =>
   useSyncExternalStore(
-    noSubscribe,
-    () => `${window.location.origin}/`,
+    subscribeOwnReferral,
+    () => inviteUrl(ownReferral()),
     () => "",
   );
 
@@ -110,32 +117,6 @@ function CheckIcon() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Actions                                                            */
-/* ------------------------------------------------------------------ */
-
-/** Clipboard API where allowed (secure contexts); a hidden textarea otherwise. */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const field = document.createElement("textarea");
-    field.value = text;
-    field.setAttribute("readonly", "");
-    field.style.cssText = "position:fixed;top:0;left:0;opacity:0";
-    document.body.append(field);
-    field.select();
-    try {
-      return document.execCommand("copy");
-    } catch {
-      return false;
-    } finally {
-      field.remove();
-    }
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /*  Destinations                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -202,7 +183,8 @@ const TILES: readonly Tile[] = [
  * - **The link bar** shows the address with a Copy button; it always works.
  * - **The tiles** are plain links, so they work with no sheet at all.
  *
- * Only the site URL is shared. A dismissed sheet is not an error.
+ * Only the link is shared: the site URL, or the visitor's invite link once
+ * they have joined. A dismissed sheet is not an error.
  */
 export function ShareActions() {
   const url = useSiteUrl();

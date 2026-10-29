@@ -12,8 +12,8 @@ import {
   type CountryCode,
 } from "@/lib/phone";
 import {
-  PHONE_CONSENT_MESSAGE,
   PHONE_INVALID_MESSAGE,
+  SMS_CONSENT_TEXT,
   type WaitlistPhoneRequest,
   type WaitlistPhoneResponse,
 } from "@/lib/waitlist";
@@ -23,8 +23,8 @@ export interface WaitlistPhoneStepProps {
   email: string;
   /** Same two looks as the signup field: the invite banner and the footer. */
   variant: "panel" | "inline";
-  /** The number was saved. */
-  onAdded: () => void;
+  /** The number was saved; `textsOk` is whether the SMS box was ticked. */
+  onAdded: (textsOk: boolean) => void;
   /** The visitor chose not to add one. */
   onSkip: () => void;
   className?: string;
@@ -39,6 +39,9 @@ const FALLBACK_ERROR = "We couldn't save your number. Please try again.";
  * A country picker and the number, nothing else: no code is texted to confirm
  * it. Collects and stores only. Nothing is texted from here and no SMS provider
  * is wired up, so the copy promises a text at launch and nothing sooner.
+ *
+ * The SMS box is separate from the number and not required: a number saved
+ * without it is recorded as "no texts" (see lib/server/waitlist-store.ts).
  *
  * The checkbox is a real checkbox and the button a real submit, so the whole
  * step works from the keyboard. Focus moves to the heading when the step
@@ -78,7 +81,6 @@ export function WaitlistPhoneStep({
 
     // The server checks all of this again; this is the quick, kind version.
     if (!normalizePhone(phone, country)) return setError(PHONE_INVALID_MESSAGE);
-    if (!consent) return setError(PHONE_CONSENT_MESSAGE);
 
     setError(null);
     setSending(true);
@@ -107,7 +109,7 @@ export function WaitlistPhoneStep({
         .catch(() => null)) as WaitlistPhoneResponse | null;
 
       if (response.ok && result?.ok) {
-        onAdded();
+        onAdded(consent);
         return;
       }
       setError(result && !result.ok ? result.error : FALLBACK_ERROR);
@@ -241,14 +243,11 @@ export function WaitlistPhoneStep({
             checked={consent}
             onChange={(event) => {
               setConsent(event.target.checked);
-              if (error) setError(null);
             }}
             className="mt-[2px] h-[18px] w-[18px] shrink-0 cursor-pointer accent-[#a855f7]"
           />
-          <span className="min-w-0 break-words">
-            I agree to receive texts from Knocka. Message/data rates may apply.
-            Reply STOP to opt out.
-          </span>
+          {/* The same constant the server stores with the number. */}
+          <span className="min-w-0 break-words">{SMS_CONSENT_TEXT}</span>
         </label>
 
         {error && (

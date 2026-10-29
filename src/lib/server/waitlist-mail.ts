@@ -3,7 +3,7 @@ import "server-only";
 import { createTransport, type Transporter } from "nodemailer";
 
 import { siteConfig } from "@/lib/site-config";
-import type { WaitlistSource } from "@/lib/waitlist";
+import { REFERRAL_TIERS, referralLink, type WaitlistSource } from "@/lib/waitlist";
 
 /**
  * Waitlist email over SMTP, via Nodemailer.
@@ -105,6 +105,26 @@ export interface Signup {
   source: WaitlistSource;
   userAgent: string | null;
   at: Date;
+  /** The new signup's own invite code; the confirmation carries its link. */
+  referralCode?: string;
+  /** The address of the friend whose link brought them, if any. */
+  referredBy?: string | null;
+}
+
+/**
+ * The public site address for links in email, from SITE_URL. Never taken from
+ * the request: its Host header is the sender's to choose, and these emails go
+ * to whatever address was typed. Unset or malformed means no link at all.
+ */
+function siteOrigin(): string | null {
+  const value = process.env.SITE_URL?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.origin : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -246,6 +266,7 @@ function ownerMessage(signup: Signup) {
     ["Time", when],
     ["Browser", signup.userAgent ?? "Unknown"],
   ];
+  if (signup.referredBy) rows.splice(2, 0, ["Referred by", signup.referredBy]);
 
   const text = [
     `New ${siteConfig.name} waitlist signup`,
@@ -263,7 +284,7 @@ function ownerMessage(signup: Signup) {
           ([label, value]) => `
       <tr>
         <td style="padding:10px 0;border-top:1px solid #26203a;color:#94a3b8;font-size:13px;width:130px;vertical-align:top;">${escapeHtml(label)}</td>
-        <td style="padding:10px 0;border-top:1px solid #26203a;color:#f1f5f9;font-size:14px;word-break:break-word;">${label === "Email" ? emailLink(value) : escapeHtml(value)}</td>
+        <td style="padding:10px 0;border-top:1px solid #26203a;color:#f1f5f9;font-size:14px;word-break:break-word;">${label === "Email" || label === "Referred by" ? emailLink(value) : escapeHtml(value)}</td>
       </tr>`,
         )
         .join("")}
@@ -276,26 +297,58 @@ function ownerMessage(signup: Signup) {
 
 function confirmationMessage(signup: Signup) {
   const name = siteConfig.name;
+  const origin = siteOrigin();
+  // The visitor's invite link: the page shows it once, so the email keeps it.
+  const invite = origin && signup.referralCode ? referralLink(origin, signup.referralCode) : null;
+  const tiers = REFERRAL_TIERS.map(
+    ({ friends, reward }) => `${friends} friend${friends === 1 ? "" : "s"} → ${reward}`,
+  );
 
   const text = [
     "You're on the list.",
     "",
     `Thanks for joining the ${name} waitlist. ${name} opens in waves, and we'll knock when yours opens.`,
     "",
-    "There's nothing else to do until then. We'll only email you about your invite.",
+    ...(invite
+      ? [
+          `Move up the ${name} early-access list: share your link. Every friend who joins with it counts for you.`,
+          "",
+          invite,
+          "",
+          ...tiers,
+        ]
+      : ["There's nothing else to do until then. We'll only email you about your invite."]),
     "",
     `You're getting this because ${signup.email} was added to the ${name} waitlist. If that wasn't you, you can ignore this email.`,
   ].join("\n");
+
+  const inviteHtml = invite
+    ? `
+    <p style="margin:0 0 14px;color:#cbd5e1;font-size:15px;line-height:1.6;">
+      <strong style="color:#ffffff;">Move up the ${escapeHtml(name)} early-access list.</strong> Share your link. Every friend who joins with it counts for you.
+    </p>
+    <p style="margin:0 0 16px;padding:12px 14px;background:#17122a;border:1px solid #26203a;border-radius:12px;font-size:14px;word-break:break-all;">
+      <a href="${escapeHtml(invite)}" style="color:#d8b4fe;text-decoration:underline;">${escapeHtml(invite)}</a>
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      ${tiers
+        .map(
+          (tier) => `
+      <tr><td style="padding:3px 0;color:#cbd5e1;font-size:14px;">${escapeHtml(tier)}</td></tr>`,
+        )
+        .join("")}
+    </table>`
+    : `
+    <p style="margin:0;color:#cbd5e1;font-size:15px;line-height:1.6;">
+      There's nothing else to do until then. We'll only email you about your invite.
+    </p>`;
 
   const html = layout(`
     <p style="margin:0 0 14px;color:#d8b4fe;font-size:12px;letter-spacing:0.22em;text-transform:uppercase;">Early access</p>
     <h1 style="margin:0 0 18px;font-size:30px;line-height:1.05;color:#ffffff;text-transform:uppercase;letter-spacing:-0.02em;">You're on the list.</h1>
     <p style="margin:0 0 14px;color:#cbd5e1;font-size:15px;line-height:1.6;">
       Thanks for joining the ${escapeHtml(name)} waitlist. ${escapeHtml(name)} opens in waves, and we'll knock when yours opens.
-    </p>
-    <p style="margin:0;color:#cbd5e1;font-size:15px;line-height:1.6;">
-      There's nothing else to do until then. We'll only email you about your invite.
-    </p>
+    </p>${inviteHtml}
     <p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #26203a;color:#64748b;font-size:12px;line-height:1.6;">
       You're getting this because ${escapeHtml(signup.email)} was added to the ${escapeHtml(name)} waitlist. If that wasn't you, you can ignore this email.
     </p>

@@ -57,7 +57,7 @@ export function Footer() {
               </span>
               <EmailSignup
                 variant="inline"
-                label="Your email address"
+                label="Email address"
                 buttonLabel="Send"
               />
             </div>

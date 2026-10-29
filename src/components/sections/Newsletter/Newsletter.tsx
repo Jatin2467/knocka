@@ -1,4 +1,5 @@
 import { EmailSignup } from "@/components/ui/EmailSignup";
+import { WaitlistCounter } from "@/components/ui/WaitlistCounter";
 
 import { PhoneStack } from "./PhoneStack";
 
@@ -13,7 +14,8 @@ import { PhoneStack } from "./PhoneStack";
  * The email field posts to /api/waitlist, which emails the owner and sends
  * the visitor a confirmation — see `EmailSignup`. The CTA keeps the label
  * the header already uses, because the page should ask for the same thing in
- * the same words every time it asks.
+ * the same words every time it asks. The waitlist counter beneath it is a
+ * client component too.
  *
  * **Not a client component.** The four reveals are AOS, the type is utilities,
  * and the only interactive parts — the CTA and the phone fan — are client
@@ -67,19 +69,23 @@ export function Newsletter() {
             data-aos="knocka-rise"
             className="mt-[clamp(16px,1.6vw,26px)] max-w-[40ch] text-[clamp(14px,1.05vw,17px)]/[1.6] text-[rgba(255,255,255,0.74)] text-balance delay-[120ms]"
           >
-            Knocka opens in waves. Join the waitlist and be one of the first to
-            send a face, a voice and a knock instead of another grey bubble.
+            Be one of the first to experience Knocka.
           </p>
 
+          {/* Step 1 asks for the email alone; the optional number (step 2)
+              and the invite link (step 3) follow inside EmailSignup. */}
           <div
             data-aos="knocka-rise"
             className="mt-[clamp(24px,2.2vw,36px)] flex flex-col gap-3.5 delay-[180ms]"
           >
             <EmailSignup
-              label="Your email address"
+              label="Email address"
               buttonLabel="Join the Waitlist"
               className="max-w-[clamp(280px,34vw,470px)] upto-900:max-w-[470px]"
             />
+            {/* Below the form, so it cannot push the field down when it
+                arrives. Hidden until the list is big enough to show. */}
+            <WaitlistCounter />
             <p className="text-[11px] tracking-[0.16em] text-[rgba(255,255,255,0.5)] uppercase">
               Coming soon to iOS and Android
             </p>
