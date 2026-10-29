@@ -7,7 +7,7 @@ import { isReferralCode, referralLink } from "@/lib/waitlist";
  *  - the friend's code this visitor arrived with (`?ref=` on the page), sent
  *    with their signup so the friend gets the credit;
  *  - this visitor's own code, once they have joined, so every share on the
- *    page (step 3 and the Share section) carries their link.
+ *    page (the Share section) carries their link.
  *
  * Storage can be blocked or throw (private windows); everything here then
  * works for the current page only.

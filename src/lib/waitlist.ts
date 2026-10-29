@@ -30,7 +30,7 @@ export type WaitlistResponse =
        */
       offerPhone?: boolean;
       /**
-       * The new signup's own referral code (step 3), sent with `offerPhone`.
+       * The new signup's own referral code, sent with `offerPhone`.
        * Friends who join through `referralLink(origin, code)` count for them.
        */
       referralCode?: string;
@@ -65,7 +65,7 @@ export const SMS_CONSENT_TEXT =
   "I agree to receive texts from Knocka. Message/data rates may apply. Reply STOP to opt out.";
 
 /* ------------------------------------------------------------------ */
-/*  Step 3: referrals                                                  */
+/*  Referrals                                                          */
 /* ------------------------------------------------------------------ */
 
 /**

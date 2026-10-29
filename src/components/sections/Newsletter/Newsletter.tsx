@@ -72,8 +72,8 @@ export function Newsletter() {
             Be one of the first to experience Knocka.
           </p>
 
-          {/* Step 1 asks for the email alone; the optional number (step 2)
-              and the invite link (step 3) follow inside EmailSignup. */}
+          {/* The email alone. Once it is in, the card says "you're on the list"
+              with one optional button for a mobile number (EmailSignup). */}
           <div
             data-aos="knocka-rise"
             className="mt-[clamp(24px,2.2vw,36px)] flex flex-col gap-3.5 delay-[180ms]"

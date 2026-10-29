@@ -10,6 +10,7 @@ import {
 
 import { copyText } from "@/lib/clipboard";
 import { inviteUrl, ownReferral, subscribeOwnReferral } from "@/lib/referral";
+import { REFERRAL_TIERS } from "@/lib/waitlist";
 
 /** Only the link is shared for now; the subject is just a label for mail. */
 const MAIL_SUBJECT = "Knocka";
@@ -26,6 +27,14 @@ const useSiteUrl = () =>
     subscribeOwnReferral,
     () => inviteUrl(ownReferral()),
     () => "",
+  );
+
+/** Whether this visitor has joined and so has an invite link of their own. */
+const useHasInvite = () =>
+  useSyncExternalStore(
+    subscribeOwnReferral,
+    () => ownReferral() !== null,
+    () => false,
   );
 
 /** Whether this browser has a system share sheet (phones, Safari, Edge, Chrome on Windows/Android). */
@@ -185,9 +194,14 @@ const TILES: readonly Tile[] = [
  *
  * Only the link is shared: the site URL, or the visitor's invite link once
  * they have joined. A dismissed sheet is not an error.
+ *
+ * Once they have joined, the rewards for inviting sit above the controls.
+ * This is where the waitlist's invite step lives: the signup form ends at
+ * "you're on the list" and does not add a step for it.
  */
 export function ShareActions() {
   const url = useSiteUrl();
+  const hasInvite = useHasInvite();
   const canShare = useCanShare(url);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -226,6 +240,25 @@ export function ShareActions() {
 
   return (
     <div className="share-actions">
+      {hasInvite && (
+        <div className="share-rewards">
+          <p className="share-rewards-title">Move up the Knocka early-access list</p>
+          <p className="share-rewards-line">
+            This is your invite link. Every friend who joins with it counts for you.
+          </p>
+          <ol className="share-rewards-tiers">
+            {REFERRAL_TIERS.map(({ friends, reward }) => (
+              <li key={friends}>
+                <span className="share-rewards-count">
+                  {friends} friend{friends === 1 ? "" : "s"}
+                </span>
+                {reward}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       {canShare && (
         <button type="button" className="share-main" onClick={share}>
           <ShareIcon />

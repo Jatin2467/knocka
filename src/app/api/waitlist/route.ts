@@ -29,7 +29,7 @@ import {
  *  - new address: the record is created, then the owner is notified and the
  *    visitor is sent a confirmation (two messages, taken from the shared daily
  *    cap first). `offerPhone` lets the form go on to step 2, and
- *    `referralCode` is the visitor's own invite code for step 3. A valid
+ *    `referralCode` is the visitor's own invite code. A valid
  *    `ref` credits the friend whose link brought them.
  *  - address already on the list: `{ ok: true }`, nothing written, no email.
  *  - daily mail cap spent: the record is still saved, no email goes out.

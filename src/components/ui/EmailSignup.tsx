@@ -1,10 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { WaitlistReferralStep } from "@/components/ui/WaitlistReferralStep";
 import { APP_CHECK_HEADER, getAppCheckToken, warmAppCheck } from "@/lib/app-check";
 import { cn } from "@/lib/cn";
 import { incomingReferral, rememberOwnReferral } from "@/lib/referral";
@@ -17,14 +16,14 @@ import {
 } from "@/lib/waitlist";
 
 /*
-  Step 2 brings the phone-number library and its country data with it, which
-  only visitors who finish step 1 ever need. So it is its own chunk, fetched
-  while the signup request is in flight (see `submit`) and never in the first
-  page load. It appears only after a click, so it has no server HTML.
+  The phone form brings the phone-number library and its country data with
+  it, which only visitors who have joined ever need. So it is its own chunk,
+  fetched while the signup request is in flight (see `submit`) and never in
+  the first page load. It appears only after a click, so it has no server HTML.
 */
-const loadPhoneStep = () =>
-  import("@/components/ui/WaitlistPhoneStep").then((m) => m.WaitlistPhoneStep);
-const WaitlistPhoneStep = dynamic(loadPhoneStep, { ssr: false });
+const loadPhoneForm = () =>
+  import("@/components/ui/WaitlistPhoneForm").then((m) => m.WaitlistPhoneForm);
+const WaitlistPhoneForm = dynamic(loadPhoneForm, { ssr: false });
 
 export type EmailSignupVariant = "panel" | "inline";
 
@@ -41,26 +40,19 @@ export interface EmailSignupProps {
 }
 
 /**
- * idle -> sending -> phone (step 2, new signups only) -> invite (step 3)
- *                 \-> done (a repeat signup goes straight here)
- * Adding a number and skipping both lead to step 3, which is the finished
- * state for a new signup; neither earlier step is offered again. Without a
- * referral code (no database, on a laptop) step 3 is left out.
+ * idle -> sending -> joined
+ *
+ * "joined" is the end: the visitor is on the list and the card says so. A new
+ * signup's card also carries one button that opens the optional phone form
+ * (`offerPhone`); a repeat of an address already on the list gets the card
+ * without it. Inviting friends is not a step here — the Share section below
+ * carries the visitor's invite link once they have joined.
  */
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "phone"; email: string; referralCode: string | null }
-  | { kind: "invite"; referralCode: string; note: string }
-  | { kind: "done"; note: string }
+  | { kind: "joined"; email: string; offerPhone: boolean }
   | { kind: "error"; message: string };
-
-/** What the visitor is told once they are on the list, by how step 2 went. */
-const NOTE = {
-  joined: "You're on the list — check your inbox. We'll knock when your wave opens.",
-  texts: "Number added. You're on the list, and we'll text you when Knocka launches.",
-  noTexts: "Number saved. You're on the list — we won't text you, we'll email you at launch.",
-} as const;
 
 /** Each variant lives in exactly one place on the page. */
 const SOURCE: Record<EmailSignupVariant, WaitlistSource> = {
@@ -113,7 +105,7 @@ export function EmailSignup({
     };
 
     setStatus({ kind: "sending" });
-    void loadPhoneStep().catch(() => undefined); // warm the step-2 chunk
+    void loadPhoneForm().catch(() => undefined); // warm the phone form's chunk
     try {
       // App Check proves the request comes from this page. With no token the
       // request is not sent at all, and the visitor is told nothing technical.
@@ -133,17 +125,13 @@ export function EmailSignup({
         .catch(() => null)) as WaitlistResponse | null;
 
       if (response.ok && result?.ok) {
-        const referralCode = isReferralCode(result.referralCode) ? result.referralCode : null;
-        if (referralCode) rememberOwnReferral(referralCode);
-        setStatus(
-          result.offerPhone
-            ? {
-                kind: "phone",
-                email: normalizeEmail(payload.email) ?? payload.email,
-                referralCode,
-              }
-            : { kind: "done", note: NOTE.joined },
-        );
+        // From here every share on the page carries this visitor's invite link.
+        if (isReferralCode(result.referralCode)) rememberOwnReferral(result.referralCode);
+        setStatus({
+          kind: "joined",
+          email: normalizeEmail(payload.email) ?? payload.email,
+          offerPhone: result.offerPhone === true,
+        });
       } else {
         setStatus({
           kind: "error",
@@ -159,46 +147,14 @@ export function EmailSignup({
     }
   };
 
-  if (status.kind === "phone") {
-    const { referralCode } = status;
-    const finish = (note: string) =>
-      setStatus(referralCode ? { kind: "invite", referralCode, note } : { kind: "done", note });
+  if (status.kind === "joined") {
     return (
-      <WaitlistPhoneStep
+      <JoinedCard
         email={status.email}
-        variant={variant}
-        className={className}
-        onAdded={(textsOk) => finish(textsOk ? NOTE.texts : NOTE.noTexts)}
-        onSkip={() => finish(NOTE.joined)}
-      />
-    );
-  }
-
-  if (status.kind === "invite") {
-    return (
-      <WaitlistReferralStep
-        referralCode={status.referralCode}
-        note={status.note}
+        offerPhone={status.offerPhone}
         variant={variant}
         className={className}
       />
-    );
-  }
-
-  if (status.kind === "done") {
-    return (
-      <p
-        className={cn(
-          "m-0 text-[14px]",
-          variant === "panel"
-            ? "text-[rgba(255,255,255,0.82)]"
-            : "text-text-secondary",
-          className,
-        )}
-        role="status"
-      >
-        ✦ {status.note}
-      </p>
     );
   }
 
@@ -317,5 +273,117 @@ export function EmailSignup({
       </Button>
       {error}
     </form>
+  );
+}
+
+/** The optional phone part of the card: offered, open, or done one way or the other. */
+type PhonePhase = "offer" | "open" | "texts" | "noTexts";
+
+/**
+ * "You're on the list" — the end of the signup, not a step towards it.
+ *
+ * For a new signup it carries exactly one action, Add my mobile number, which
+ * opens the phone form in place inside the same card. Cancel folds it back to
+ * the button; a saved number replaces both with a one-line confirmation.
+ *
+ * Focus follows the visitor: the heading on arrival (the form they were in has
+ * gone), the number field when the form opens, the button again on cancel.
+ */
+function JoinedCard({
+  email,
+  offerPhone,
+  variant,
+  className,
+}: {
+  email: string;
+  offerPhone: boolean;
+  variant: EmailSignupVariant;
+  className?: string;
+}) {
+  const id = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const offerRef = useRef<HTMLDivElement>(null);
+  const [phase, setPhase] = useState<PhonePhase>("offer");
+  const panel = variant === "panel";
+  const muted = panel ? "text-[rgba(255,255,255,0.78)]" : "text-text-secondary";
+
+  useEffect(() => {
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const cancel = () => {
+    setPhase("offer");
+    // After the button is back in the DOM.
+    requestAnimationFrame(() => offerRef.current?.querySelector("button")?.focus());
+  };
+
+  return (
+    <section
+      aria-labelledby={`${id}-title`}
+      className={cn(
+        "w-full rounded-[20px] border p-[clamp(16px,2vw,24px)] text-left",
+        panel
+          ? "border-[rgba(255,255,255,0.22)] bg-[rgba(9,6,18,0.34)]"
+          : "border-border-subtle bg-glass-strong",
+        className,
+      )}
+    >
+      <h3
+        id={`${id}-title`}
+        ref={headingRef}
+        tabIndex={-1}
+        className="m-0 font-display text-[clamp(18px,1.6vw,22px)]/[1.2] font-[800] tracking-[-0.02em] text-balance text-text-primary outline-none"
+      >
+        <span aria-hidden="true">🎉 </span>You&apos;re on the Knocka list!
+      </h3>
+      <p className={cn("mt-1.5 mb-0 text-[14px]/[1.55] text-pretty", muted)}>
+        Check your inbox — we&apos;ll knock when your wave opens.
+      </p>
+
+      {offerPhone && phase === "offer" && (
+        <div
+          ref={offerRef}
+          className="mt-4 flex flex-col items-start gap-2.5 border-t border-[rgba(255,255,255,0.12)] pt-4"
+        >
+          <p className={cn("m-0 text-[13px]/[1.5]", muted)}>
+            <span className="font-medium text-accent-lilac">Want early access even faster?</span>{" "}
+            We&apos;ll text you the moment Knocka launches.
+          </p>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            arrow
+            magnetic={false}
+            onClick={() => setPhase("open")}
+          >
+            Add my mobile number
+          </Button>
+        </div>
+      )}
+
+      {phase === "open" && (
+        <div className="mt-4 border-t border-[rgba(255,255,255,0.12)] pt-4">
+          <WaitlistPhoneForm
+            email={email}
+            variant={variant}
+            onAdded={(textsOk) => setPhase(textsOk ? "texts" : "noTexts")}
+            onCancel={cancel}
+          />
+        </div>
+      )}
+
+      {(phase === "texts" || phase === "noTexts") && (
+        <p
+          role="status"
+          className="mt-4 mb-0 border-t border-[rgba(255,255,255,0.12)] pt-4 text-[13px]/[1.5] text-white"
+        >
+          ✦{" "}
+          {phase === "texts"
+            ? "Number added. We'll text you when Knocka launches."
+            : "Number saved. We won't text you — we'll email you at launch."}
+        </p>
+      )}
+    </section>
   );
 }
