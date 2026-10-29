@@ -23,7 +23,11 @@
 
     position: fixed;
     right: calc(env(safe-area-inset-right, 0px) + clamp(16px, 2.2vw, 32px));
-    bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(18px, 2.4vw, 34px));
+    /* Stacked above the music toggle, which owns the corner (music-toggle.css). */
+    bottom: calc(
+      env(safe-area-inset-bottom, 0px) + clamp(18px, 2.4vw, 34px) + var(--music-toggle-size) +
+        var(--music-toggle-gap)
+    );
     /* Under the header (z-60) and its mobile menu, over everything else. */
     z-index: 50;
   }

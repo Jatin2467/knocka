@@ -24,11 +24,23 @@ const STORAGE_KEY = "knocka-music";
 /*
   The events that grant user activation (HTML spec, "activation-triggering
   input event"): keydown, a mouse pointerdown, a touch or pen pointerup, and
-  touchend. click follows both, so it is listened to as well. Scroll, wheel
-  and touchstart never count in any browser, so they are not listened to:
-  every attempt they made was a rejected play().
+  touchend. click follows both, so it is listened to as well. Any one of
+  these starts the music.
 */
 const GESTURES = ["pointerdown", "pointerup", "touchend", "keydown", "click"] as const;
+
+/*
+  Movement: scroll, wheel, the mouse moving, a finger moving. These never
+  grant activation by default, so in most browsers their play() is refused
+  and the next click or tap starts the music instead. They are still tried,
+  because some browsers allow sound without a tap: Chrome for sites a person
+  plays media on often, and any browser whose owner allows autoplay. A
+  refused try costs nothing and changes nothing. At most one try per
+  SOFT_GAP_MS, and only once the file is prepared, so moving the mouse never
+  starts the download early.
+*/
+const MOVEMENTS = ["scroll", "wheel", "mousemove", "touchstart", "touchmove"] as const;
+const SOFT_GAP_MS = 1000;
 
 type NetworkInformation = { saveData?: boolean; effectiveType?: string };
 
@@ -74,13 +86,16 @@ function isConstrained() {
  * **Sound needs a tap.** Browsers refuse audible playback before a click, tap
  * or key on the page, and nothing here tries to get around that. One
  * autoplay attempt is made when the file is prepared, unless the browser
- * says up front that it will refuse (`navigator.getAutoplayPolicy`); after
- * that, the first click, tap or key anywhere starts it, with `play()` called
- * synchronously inside that handler so the activation is not lost. The knock
- * prompt in the opening section is one such tap.
+ * says up front that it will refuse (`navigator.getAutoplayPolicy`). After
+ * that, scrolling or moving the mouse tries again (it works only where the
+ * browser already allows sound — see MOVEMENTS), and the first click, tap or
+ * key anywhere starts it, with `play()` called synchronously inside that
+ * handler so the activation is not lost. The knock prompt in the opening
+ * section is one such tap.
  *
- * The toggle shows what is actually happening: no sound until the music is
- * really playing, and a tap on it always does what its label says.
+ * The toggle, bottom right, shows what is actually happening: moving bars
+ * only while the music is really playing, and a tap on it always does what
+ * its label says.
  */
 export function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -101,6 +116,9 @@ export function BackgroundMusic() {
     let armed = false;
     let hinted = false;
     let hintTimer: number | undefined;
+    /** Which play() is the latest; an older one's refusal is ignored. */
+    let attempt = 0;
+    let lastSoft = 0;
 
     const publish = () => {
       if (failed) setMusicState("unavailable");
@@ -134,17 +152,21 @@ export function BackgroundMusic() {
      * Presses play if nothing holds the music. Synchronous up to the
      * `play()` call, so it keeps the user activation of the handler that
      * called it.
+     *
+     * A `soft` try (movement) does not mark the music as starting, so a click
+     * that lands while its refusal is still on the way is never turned away.
      */
-    const play = () => {
+    const play = (soft = false) => {
       if (off || failed || inFilm || document.hidden) return publish();
       if (!audio.paused || starting) return;
       load();
-      starting = true;
+      const id = ++attempt;
+      if (!soft) starting = true;
       cancelAnimationFrame(fade);
       audio.volume = 0;
       audio.play().then(
         () => {
-          starting = false;
+          if (id === attempt) starting = false;
           wanted = true;
           disarm();
           fadeTo(VOLUME);
@@ -157,6 +179,8 @@ export function BackgroundMusic() {
           publish();
         },
         (error: unknown) => {
+          // A newer play() is in charge now; this refusal is old news.
+          if (id !== attempt) return;
           starting = false;
           audio.volume = VOLUME;
           const name = error instanceof DOMException ? error.name : "";
@@ -192,16 +216,26 @@ export function BackgroundMusic() {
       play();
     };
 
+    const onMovement = () => {
+      if (wanted || off || failed || !audio.getAttribute("src")) return;
+      const now = performance.now();
+      if (now - lastSoft < SOFT_GAP_MS) return;
+      lastSoft = now;
+      play(true);
+    };
+
     function arm() {
       if (armed) return;
       armed = true;
       for (const type of GESTURES) window.addEventListener(type, onGesture, { passive: true });
+      for (const type of MOVEMENTS) window.addEventListener(type, onMovement, { passive: true });
     }
 
     function disarm() {
       if (!armed) return;
       armed = false;
       for (const type of GESTURES) window.removeEventListener(type, onGesture);
+      for (const type of MOVEMENTS) window.removeEventListener(type, onMovement);
     }
 
     registerMusicControls({
@@ -318,32 +352,43 @@ export function BackgroundMusic() {
       {/* No src until the page is ready for it — see prepare() above. */}
       <audio ref={audioRef} loop preload="none" />
       {state !== "unavailable" && (
-      <button
-        type="button"
-        {...{ [MUSIC_CONTROL_ATTR]: "" }}
-        // Synchronous: the toggle's own click is the activation play() needs.
-        onClick={toggleMusic}
-        aria-label={on ? "Turn background music off" : "Turn background music on"}
-        aria-pressed={on}
-        data-hint={hint || undefined}
-        className="music-toggle fixed bottom-4 left-4 z-50 grid size-10 place-items-center rounded-full border border-white/15 bg-[rgba(10,8,16,0.72)] text-white transition-colors hover:border-purple-300/50"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="size-[18px]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+        <button
+          type="button"
+          {...{ [MUSIC_CONTROL_ATTR]: "" }}
+          // Synchronous: the toggle's own click is the activation play() needs.
+          onClick={toggleMusic}
+          aria-label={on ? "Turn background music off" : "Turn background music on"}
+          aria-pressed={on}
+          title={on ? "Sound off" : "Sound on"}
+          data-hint={hint || undefined}
+          data-playing={state === "playing" || undefined}
+          className="music-toggle"
         >
-          <path d="M9 18V5l11-2v13" />
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="17" cy="16" r="3" />
-          {!on && <path d="M3 3l18 18" />}
-        </svg>
-      </button>
+          {on ? (
+            // Bars: they dance while the music plays and rest while the film
+            // or a hidden tab holds it.
+            <span className="music-bars" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              className="size-[18px]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M11 5 6 9H2v6h4l5 4V5Z" />
+              <path d="m22 9-6 6M16 9l6 6" />
+            </svg>
+          )}
+        </button>
       )}
     </>
   );
