@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { CheckIcon, LinkIcon, MailIcon, WhatsAppIcon } from "@/components/ui/ShareIcons";
 import { copyText } from "@/lib/clipboard";
 import { cn } from "@/lib/cn";
 import { inviteUrl } from "@/lib/referral";
-import { REFERRAL_TIERS } from "@/lib/waitlist";
 
 export interface WaitlistInviteProps {
   /** The visitor's own code, from the signup response. */
@@ -18,44 +19,46 @@ export interface WaitlistInviteProps {
 /** The message that travels with the link. */
 const SHARE_TEXT = "Knock knock 👊 I just joined the Knocka waitlist. Join me:";
 
+/** Three of the cast, as in the Share section, so the ask feels like sending it to someone. */
+const FACES = [
+  "/avatar-profile-img/avatar1.png",
+  "/avatar-profile-img/avatar3.png",
+  "/avatar-profile-img/avatar6.png",
+] as const;
+
 /**
- * The end of the "you're on the list" card, once a number is in: the visitor's
- * invite link and what inviting earns. The server credits a referrer when a new
- * address joins through the link (`referralCount`); nothing grants the rewards
- * yet.
+ * The end of the "you're on the list" card, once a number is in: a plain ask
+ * to bring friends. No rewards are offered, so none are promised. The link is
+ * the visitor's own (`/?ref=code`); the server counts who joins through it
+ * (`referralCount`), quietly.
  *
  * Share Knocka opens the system sheet where there is one and copies the link
  * where there is not, so the main button always does something. WhatsApp and
- * Email are plain links that arrive pre-filled; Copy link always works.
+ * Email arrive pre-filled; Copy link always works.
  *
  * Only ever rendered after a click, so reading `navigator` and `window` here
  * cannot cause a hydration mismatch.
  */
 export function WaitlistInvite({ referralCode, variant }: WaitlistInviteProps) {
   const resetTimer = useRef<number | undefined>(undefined);
-  const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
-  const panel = variant === "panel";
-  const muted = panel ? "text-[rgba(255,255,255,0.78)]" : "text-text-secondary";
+  const [failed, setFailed] = useState(false);
+  const muted = variant === "panel" ? "text-[rgba(255,255,255,0.78)]" : "text-text-secondary";
 
   const url = inviteUrl(referralCode);
   const shareMessage = `${SHARE_TEXT} ${url}`;
 
   useEffect(() => () => window.clearTimeout(resetTimer.current), []);
 
-  const say = (text: string, didCopy: boolean) => {
-    setMessage(text);
-    setCopied(didCopy);
+  const copy = async () => {
+    const ok = await copyText(url);
+    setCopied(ok);
+    setFailed(!ok);
     window.clearTimeout(resetTimer.current);
     resetTimer.current = window.setTimeout(() => {
-      setMessage("");
       setCopied(false);
+      setFailed(false);
     }, 3200);
-  };
-
-  const copy = async () => {
-    if (await copyText(url)) say("Link copied — paste it anywhere.", true);
-    else say("Couldn't copy. Use WhatsApp or Email instead.", false);
   };
 
   const share = async () => {
@@ -72,27 +75,32 @@ export function WaitlistInvite({ referralCode, variant }: WaitlistInviteProps) {
   };
 
   const pill =
-    "inline-flex min-h-9 items-center justify-center rounded-pill border border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.06)] px-3.5 text-[13px] font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgba(255,255,255,0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(255,255,255,0.7)] cursor-pointer";
+    "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-pill border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.06)] px-3.5 text-[13px] font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgba(255,255,255,0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(255,255,255,0.7)] [&>svg]:h-4 [&>svg]:w-4";
 
   return (
-    <div className="mt-4">
-      <p className="m-0 font-display text-[15px]/[1.3] font-[700] tracking-[-0.01em] text-white">
-        Move up the Knocka early-access list
-      </p>
-      <p className={cn("mt-1 mb-0 text-[13px]/[1.5] text-pretty", muted)}>
-        Invite friends. Everyone who joins with your link counts for you.
-      </p>
-
-      <ol className="mt-3 mb-0 grid list-none gap-1.5 p-0">
-        {REFERRAL_TIERS.map(({ friends, reward }) => (
-          <li key={friends} className="flex items-center gap-2.5 text-[13px] text-white">
-            <span className="inline-flex min-w-[4.5rem] shrink-0 justify-center rounded-pill border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-accent-lilac">
-              {friends} friend{friends === 1 ? "" : "s"}
-            </span>
-            <span className="min-w-0">{reward}</span>
-          </li>
-        ))}
-      </ol>
+    <div className="mt-5">
+      <div className="flex items-center gap-3">
+        <span className="flex shrink-0 pl-2" aria-hidden="true">
+          {FACES.map((src) => (
+            <Image
+              key={src}
+              src={src}
+              alt=""
+              width={64}
+              height={64}
+              className="-ml-2 h-8 w-8 rounded-full border-2 border-[#1a1030] bg-[#1a1030] object-cover"
+            />
+          ))}
+        </span>
+        <div className="min-w-0">
+          <p className="m-0 font-display text-[15px]/[1.3] font-[700] tracking-[-0.01em] text-white">
+            Bring your friends
+          </p>
+          <p className={cn("m-0 text-[13px]/[1.45] text-pretty", muted)}>
+            Knocka is better when someone knocks back.
+          </p>
+        </div>
+      </div>
 
       <Button
         type="button"
@@ -114,6 +122,7 @@ export function WaitlistInvite({ referralCode, variant }: WaitlistInviteProps) {
             target="_blank"
             rel="noopener noreferrer"
           >
+            <WhatsAppIcon />
             WhatsApp
           </a>
         </li>
@@ -122,22 +131,25 @@ export function WaitlistInvite({ referralCode, variant }: WaitlistInviteProps) {
             className={pill}
             href={`mailto:?subject=${encodeURIComponent("Join me on Knocka")}&body=${encodeURIComponent(shareMessage)}`}
           >
+            <MailIcon />
             Email
           </a>
         </li>
         <li>
-          <button type="button" className={pill} onClick={() => void copy()}>
-            {copied ? "Copied ✓" : "Copy link"}
+          <button
+            type="button"
+            className={cn(pill, copied && "border-[rgba(52,211,153,0.5)] bg-[rgba(52,211,153,0.16)]")}
+            onClick={() => void copy()}
+          >
+            {copied ? <CheckIcon /> : <LinkIcon />}
+            {copied ? "Copied" : "Copy link"}
           </button>
         </li>
       </ul>
 
-      <p
-        role="status"
-        aria-live="polite"
-        className={cn("m-0 mt-2 min-h-[1.25em] text-[12px]", copied ? "text-[#6ee7b7]" : muted)}
-      >
-        {message}
+      {/* Announces the copy, and says so when the browser refused it. */}
+      <p role="status" aria-live="polite" className={cn("m-0 mt-2 min-h-[1.25em] text-[12px]", muted)}>
+        {copied ? "Link copied — paste it anywhere." : failed ? "Couldn't copy. Use WhatsApp or Email instead." : ""}
       </p>
     </div>
   );

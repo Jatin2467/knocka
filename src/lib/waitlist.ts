@@ -87,16 +87,6 @@ export function referralLink(origin: string, code: string): string {
   return `${origin}/?ref=${code}`;
 }
 
-/**
- * What inviting friends earns, as the page and the confirmation email show
- * it. Only the count is recorded (`referralCount`); nothing grants these yet.
- */
-export const REFERRAL_TIERS = [
-  { friends: 1, reward: "Early Access" },
-  { friends: 3, reward: "Founding Member badge" },
-  { friends: 5, reward: "Exclusive Founder avatar item" },
-] as const;
-
 /** GET /api/waitlist/count. `count` stays null until the list is big enough to show. */
 export interface WaitlistCountResponse {
   count: number | null;

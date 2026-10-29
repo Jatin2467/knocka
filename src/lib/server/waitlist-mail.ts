@@ -3,7 +3,7 @@ import "server-only";
 import { createTransport, type Transporter } from "nodemailer";
 
 import { siteConfig } from "@/lib/site-config";
-import { REFERRAL_TIERS, referralLink, type WaitlistSource } from "@/lib/waitlist";
+import { referralLink, type WaitlistSource } from "@/lib/waitlist";
 
 /**
  * Waitlist email over SMTP, via Nodemailer.
@@ -300,9 +300,6 @@ function confirmationMessage(signup: Signup) {
   const origin = siteOrigin();
   // The visitor's invite link: the page shows it once, so the email keeps it.
   const invite = origin && signup.referralCode ? referralLink(origin, signup.referralCode) : null;
-  const tiers = REFERRAL_TIERS.map(
-    ({ friends, reward }) => `${friends} friend${friends === 1 ? "" : "s"} → ${reward}`,
-  );
 
   const text = [
     "You're on the list.",
@@ -310,13 +307,7 @@ function confirmationMessage(signup: Signup) {
     `Thanks for joining the ${name} waitlist. ${name} opens in waves, and we'll knock when yours opens.`,
     "",
     ...(invite
-      ? [
-          `Move up the ${name} early-access list: share your link. Every friend who joins with it counts for you.`,
-          "",
-          invite,
-          "",
-          ...tiers,
-        ]
+      ? [`Bring your friends — ${name} is better when someone knocks back. Share your link:`, "", invite]
       : ["There's nothing else to do until then. We'll only email you about your invite."]),
     "",
     `You're getting this because ${signup.email} was added to the ${name} waitlist. If that wasn't you, you can ignore this email.`,
@@ -325,19 +316,11 @@ function confirmationMessage(signup: Signup) {
   const inviteHtml = invite
     ? `
     <p style="margin:0 0 14px;color:#cbd5e1;font-size:15px;line-height:1.6;">
-      <strong style="color:#ffffff;">Move up the ${escapeHtml(name)} early-access list.</strong> Share your link. Every friend who joins with it counts for you.
+      <strong style="color:#ffffff;">Bring your friends.</strong> ${escapeHtml(name)} is better when someone knocks back. Share your link:
     </p>
-    <p style="margin:0 0 16px;padding:12px 14px;background:#17122a;border:1px solid #26203a;border-radius:12px;font-size:14px;word-break:break-all;">
+    <p style="margin:0;padding:12px 14px;background:#17122a;border:1px solid #26203a;border-radius:12px;font-size:14px;word-break:break-all;">
       <a href="${escapeHtml(invite)}" style="color:#d8b4fe;text-decoration:underline;">${escapeHtml(invite)}</a>
-    </p>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      ${tiers
-        .map(
-          (tier) => `
-      <tr><td style="padding:3px 0;color:#cbd5e1;font-size:14px;">${escapeHtml(tier)}</td></tr>`,
-        )
-        .join("")}
-    </table>`
+    </p>`
     : `
     <p style="margin:0;color:#cbd5e1;font-size:15px;line-height:1.6;">
       There's nothing else to do until then. We'll only email you about your invite.

@@ -270,61 +270,6 @@
     background: rgba(52, 211, 153, 0.18);
   }
 
-  /* ---------- Invite rewards (only once the visitor has joined) ---------- */
-
-  .share-rewards {
-    padding: 16px 18px;
-    border: 1px solid var(--color-border-accent);
-    border-radius: var(--radius-control);
-    background: rgba(168, 85, 247, 0.08);
-  }
-
-  .share-rewards-title {
-    margin: 0;
-    color: var(--color-text-bright);
-    font-family: var(--font-display);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-
-  .share-rewards-line {
-    margin: 4px 0 12px;
-    color: var(--color-text-secondary);
-    font-size: 13.5px;
-    line-height: 1.5;
-  }
-
-  .share-rewards-tiers {
-    display: grid;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    color: var(--color-text-bright);
-    font-size: 14px;
-  }
-
-  .share-rewards-tiers li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .share-rewards-count {
-    display: inline-flex;
-    flex: none;
-    justify-content: center;
-    min-width: 76px;
-    padding: 3px 10px;
-    border: 1px solid var(--color-border-accent-strong);
-    border-radius: var(--radius-pill);
-    color: var(--color-accent-lilac);
-    font-size: 12px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
   /* ---------- App tiles ---------- */
 
   .share-tiles {
