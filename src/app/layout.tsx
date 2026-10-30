@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 
 import { Aos } from "@/components/animation/Aos";
 import { BackgroundMusic } from "@/components/animation/BackgroundMusic";
 import { SmoothScroll } from "@/components/animation/SmoothScroll";
 import { siteConfig } from "@/lib/site-config";
+import { siteUrl } from "@/lib/server/site-url";
 
 import "./globals.css";
 
@@ -39,9 +40,76 @@ const NOSCRIPT_REVEAL = [
 // whose hidden state is gated on the .aos-init class AOS itself adds. No
 // script, no class, no hidden content — see styles/aos.css.
 
+/*
+  The link-preview image is not set here: src/app/opengraph-image.jpg and
+  twitter-image.jpg (made by scripts/og-image.mjs) are picked up by Next, which
+  writes og:image / twitter:image with their size, type and alt text.
+  metadataBase turns those, and every relative URL below, into absolute ones —
+  crawlers ignore relative image URLs.
+*/
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: siteConfig.title,
-  description: siteConfig.description,
+  description: siteConfig.metaDescription,
+  applicationName: siteConfig.name,
+  keywords: [...siteConfig.keywords],
+  category: "social networking",
+  // Invite links are /?ref=code; they all point search engines at the root.
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: siteConfig.name,
+    title: siteConfig.title,
+    description: siteConfig.metaDescription,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.title,
+    description: siteConfig.metaDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+      "max-snippet": -1,
+    },
+  },
+  formatDetection: { telephone: false, email: false, address: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#030305",
+  colorScheme: "dark",
+};
+
+/** What Knocka is, for search engines: the organisation and its site. */
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": new URL("/#organization", siteUrl).href,
+      name: siteConfig.name,
+      url: siteUrl.href,
+      logo: new URL("/branding/knocka-avatar-logo.png", siteUrl).href,
+      email: "knocka@weknocka.com",
+    },
+    {
+      "@type": "WebSite",
+      "@id": new URL("/#website", siteUrl).href,
+      name: siteConfig.name,
+      url: siteUrl.href,
+      description: siteConfig.metaDescription,
+      inLanguage: "en",
+      publisher: { "@id": new URL("/#organization", siteUrl).href },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -59,6 +127,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <noscript>
           <style>{NOSCRIPT_REVEAL}</style>
         </noscript>
+        <script
+          type="application/ld+json"
+          // `<` escaped so no string in the payload can close the tag.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c"),
+          }}
+        />
         {children}
         <SmoothScroll />
         <Aos />

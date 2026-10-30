@@ -15,9 +15,27 @@ export interface PrimaryNavLink extends NavLink {
 
 export const siteConfig = {
   name: "Knocka",
-  title: "Knocka — Feel the Message",
+  /** The <title>, search result headline and link-preview title. */
+  title: "Knocka — Feel the Message | Avatar Messaging App",
+  /** The footer's tagline. Search and link previews use `metaDescription`. */
   description:
     "Messages that feel human. Express yourself with emotion, voice, movement and presence.",
+  /**
+   * The meta and Open Graph description. Kept to about 155 characters so
+   * Google shows it whole, and leads with what Knocka is.
+   */
+  metaDescription:
+    "Knocka is avatar messaging that feels human: your avatar knocks on a friend's screen and delivers your message with emotion, voice and presence.",
+  keywords: [
+    "Knocka",
+    "avatar messaging",
+    "avatar messaging app",
+    "3D avatar chat",
+    "expressive messaging",
+    "voice messages",
+    "messaging app",
+    "chat with avatars",
+  ],
 } as const;
 
 /**

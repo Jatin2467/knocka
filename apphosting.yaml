@@ -103,9 +103,12 @@ env:
   # --- Referrals and the waitlist counter ------------------------------------
   # Public address for the invite link in the confirmation email. Never read
   # from the request. Change it when the custom domain goes live.
+  # Also needed at BUILD: the prerendered page's canonical URL, og:url and
+  # og:image addresses, robots.txt and sitemap.xml are all built from it
+  # (src/lib/server/site-url.ts).
   - variable: SITE_URL
     value: https://knocka--knocka-75c63.us-east4.hosted.app
-    availability: [RUNTIME]
+    availability: [BUILD, RUNTIME]
   # "N people are waiting to Knock" appears once the list has this many
   # signups. Lower it only when the number is worth showing.
   - variable: WAITLIST_COUNTER_MIN
