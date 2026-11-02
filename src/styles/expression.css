@@ -6,9 +6,9 @@
    vocabulary for: two keyframe tracks, the mask that dissolves
    the columns into darkness, and the reduced-motion stop.
 
-   The movement is transform-only and infinite, so the
-   compositor owns it outright — no scroll input, no main-thread
-   work, nothing for the DNA canvas to compete with.
+   The movement is transform-only and infinite. Chrome still
+   ticks it on the main thread every frame (measured), so the
+   section pauses it while off-screen — see usePauseOffscreen.
 ============================================================ */
 
 @layer components {

@@ -79,8 +79,8 @@ export function SiteHeader() {
 
   /**
    * The CTAs are buttons, not links — a `<button>` inside an `<a>` is invalid
-   * markup — so they scroll themselves, through Lenis when it is running
-   * (see lib/smooth-scroll). Both paths honour the `scroll-margin-top` in
+   * markup — so they scroll themselves (see lib/smooth-scroll). Both the
+   * buttons and the links honour the `scroll-margin-top` in
    * base.css, which is what keeps the target's heading clear of this bar. The
    * nav links above stay real anchors: they are navigation and should behave
    * like it with JS off.

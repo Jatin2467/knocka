@@ -4,6 +4,8 @@ import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 
+import { usePauseOffscreen } from "@/lib/use-pause-offscreen";
+
 /**
  * The five expression clips, read off `public/expression-video-slider/`.
  *
@@ -139,6 +141,9 @@ export function Expression() {
   const galleryRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const isStatic = reduceMotion === true;
+  // The drifting strips are infinite CSS animations; they hold still while
+  // the section is off-screen, as the clips already do.
+  usePauseOffscreen(sectionRef);
 
   useEffect(() => {
     const root = galleryRef.current;

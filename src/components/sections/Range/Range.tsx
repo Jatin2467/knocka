@@ -2,7 +2,10 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import { useRef } from "react";
 import type { PointerEvent, ReactNode } from "react";
+
+import { usePauseOffscreen } from "@/lib/use-pause-offscreen";
 
 import { KnockMarks } from "./KnockMarks";
 import { KnockPrompt } from "./KnockPrompt";
@@ -111,9 +114,18 @@ function RevealLine({
  */
 export function Range() {
   const reduceMotion = useReducedMotion() === true;
+  const sectionRef = useRef<HTMLElement>(null);
+  // The marquee and the prompt's breath loop forever; they stop while the
+  // section is scrolled away, which is all of S2's pinned runway.
+  usePauseOffscreen(sectionRef);
 
   return (
-    <section className="range" id="range" aria-labelledby="range-title">
+    <section
+      ref={sectionRef}
+      className="range"
+      id="range"
+      aria-labelledby="range-title"
+    >
       <div className="range-inner">
         <div className="knock-stage">
           <div className="knock-head">

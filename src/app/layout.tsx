@@ -3,7 +3,6 @@ import { Inter, Outfit } from "next/font/google";
 
 import { Aos } from "@/components/animation/Aos";
 import { BackgroundMusic } from "@/components/animation/BackgroundMusic";
-import { SmoothScroll } from "@/components/animation/SmoothScroll";
 import { siteConfig } from "@/lib/site-config";
 import { siteUrl } from "@/lib/server/site-url";
 
@@ -135,7 +134,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         {children}
-        <SmoothScroll />
         <Aos />
         <BackgroundMusic />
       </body>

@@ -48,3 +48,13 @@
     will-change: transform;
   }
 }
+
+@layer components {
+  /* Set by usePauseOffscreen while a section is out of view: its looping
+     animations hold their frame instead of ticking on the main thread. */
+  [data-offscreen] *,
+  [data-offscreen] *::before,
+  [data-offscreen] *::after {
+    animation-play-state: paused !important;
+  }
+}

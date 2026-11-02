@@ -1,33 +1,18 @@
-import type Lenis from "lenis";
-
 /**
- * The page's one Lenis instance, registered by `SmoothScroll`. Module state
- * rather than context: the callers (header CTAs, back-to-top) only need it
- * inside click handlers, long after mount, and never re-render on it.
- */
-let lenis: Lenis | null = null;
-
-export function registerLenis(instance: Lenis | null) {
-  lenis = instance;
-}
-
-/**
- * Scroll to a selector, an element or a pixel offset.
+ * Scroll to a selector, an element or a pixel offset, with the browser's own
+ * smooth scrolling. `scrollIntoView` honours `scroll-margin-top`, so the
+ * offsets in base.css that keep headings clear of the header still apply.
  *
- * Goes through Lenis when it is running, so a programmatic jump uses the same
- * easing as the wheel instead of the browser's native smooth scroll fighting
- * Lenis frame by frame. Lenis reads `scroll-margin-top`, so the offsets in
- * base.css that keep headings clear of the header still apply.
+ * Native on purpose. The page used Lenis for inertial wheel scrolling until it
+ * was measured as the main cause of the lag into S2: it sets the scroll
+ * position from JavaScript every frame, so the scroll itself waited on the
+ * main thread, and halving it there was worth more than the inertia. Native
+ * scrolling runs on the compositor and stays smooth even when a frame of
+ * scroll-linked animation runs long.
  *
- * Without Lenis (reduced motion, or before mount) it falls back to the native
- * behaviour, read at click time so a mid-session OS change is honoured.
+ * Reduced motion is read at click time so a mid-session OS change is honoured.
  */
 export function scrollToTarget(target: string | HTMLElement | number) {
-  if (lenis) {
-    lenis.scrollTo(target);
-    return;
-  }
-
   const behavior = window.matchMedia("(prefers-reduced-motion: reduce)")
     .matches
     ? "auto"
