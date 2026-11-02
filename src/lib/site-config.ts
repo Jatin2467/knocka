@@ -15,26 +15,45 @@ export interface PrimaryNavLink extends NavLink {
 
 export const siteConfig = {
   name: "Knocka",
-  /** The <title>, search result headline and link-preview title. */
-  title: "Knocka — Feel the Message | Avatar Messaging App",
-  /** The footer's tagline. Search and link previews use `metaDescription`. */
-  description:
-    "Messages that feel human. Express yourself with emotion, voice, movement and presence.",
+
   /**
-   * The meta and Open Graph description. Kept to about 155 characters so
-   * Google shows it whole, and leads with what Knocka is.
+   * SEO title.
+   * Primary keyword + brand + value proposition.
+   */
+  title: "Knocka | 3D Avatar Messaging App That Brings Messages to Life",
+
+  /**
+   * Brand description.
+   * Used in the footer and other brand contexts.
+   */
+  description:
+    "Don't just send a message. Make someone feel it. Knocka brings your conversations to life with personalized avatars, voice, and emotion.",
+
+  /**
+   * SEO meta description.
+   * Describes the product, differentiator, and waitlist opportunity.
    */
   metaDescription:
-    "Knocka is avatar messaging that feels human: your avatar knocks on a friend's screen and delivers your message with emotion, voice and presence.",
+    "Meet Knocka, the 3D avatar messaging app that brings messages to life with voice, emotion and movement. Coming soon. Join the waitlist for early access.",
+
+  /**
+   * Search-related topic terms.
+   * Google ignores meta keywords for ranking.
+   * These remain useful for internal content planning.
+   */
   keywords: [
     "Knocka",
-    "avatar messaging",
+    "Knocka app",
+    "3D avatar messaging app",
     "avatar messaging app",
-    "3D avatar chat",
-    "expressive messaging",
-    "voice messages",
-    "messaging app",
-    "chat with avatars",
+    "personalized avatar messaging",
+    "expressive messaging app",
+    "animated avatar messages",
+    "voice messaging app",
+    "interactive messaging",
+    "digital avatar communication",
+    "emotional messaging",
+    "avatar chat",
   ],
 } as const;
 
@@ -125,24 +144,24 @@ export const rooms: readonly Room[] = [
   {
     id: "coffee-shop",
     ordinal: "01",
-    name: "Coffee shop",
-    line: "Slow conversations.",
+    name: "Coffee Shop",
+    line: "A cozy place for conversations that matter.",
     video: "/videos/Coffee-Shop1.mp4",
     glow: "168, 85, 247",
   },
   {
     id: "disco-club",
     ordinal: "02",
-    name: "Disco club",
-    line: "Turn the moment up.",
+    name: "Disco Club",
+    line: "Turn up the energy. Share the excitement.",
     video: "/videos/Disco-Club1.mp4",
     glow: "236, 72, 153",
   },
   {
     id: "ice-cream-shop",
     ordinal: "03",
-    name: "Ice cream shop",
-    line: "Just hanging out.",
+    name: "Ice Cream Shop",
+    line: "For sweet moments and spontaneous conversations.",
     video: "/videos/Ice-Cream-Shop1.mp4",
     glow: "56, 189, 248",
   },
