@@ -63,3 +63,5 @@
 @import "../styles/share.css";
 @import "../styles/footer.css";
 @import "../styles/sections.css";
+/* Temporary: the Coming Soon page at / (see app/page.tsx). */
+@import "../styles/coming-soon.css";

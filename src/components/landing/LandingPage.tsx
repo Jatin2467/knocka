@@ -1,0 +1,49 @@
+import { Aos } from "@/components/animation/Aos";
+import { BackgroundMusic } from "@/components/animation/BackgroundMusic";
+import { DNAAnimation } from "@/components/animation/DNAAnimation";
+import { SiteHeader } from "@/components/navigation";
+import { BackToTop } from "@/components/navigation/BackToTop";
+import { Arrival } from "@/components/sections/Arrival";
+import { Expression } from "@/components/sections/Expression";
+import { Film } from "@/components/sections/Film";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { Footer } from "@/components/sections/Footer";
+import { Newsletter } from "@/components/sections/Newsletter";
+import { Range } from "@/components/sections/Range";
+import { Rooms } from "@/components/sections/Rooms";
+import { Share } from "@/components/sections/Share";
+
+/**
+ * The full Knocka landing page, exactly as it rendered at `/` before the
+ * temporary Coming Soon page. app/page.tsx chooses between the two.
+ *
+ * AOS and the background music used to be mounted by the root layout. They
+ * belong to this page only — the Coming Soon page must not start AOS or
+ * download the soundtrack — so they moved here, after <main>, which is the
+ * same place in the DOM they had as the layout's last children.
+ */
+export function LandingPage() {
+  // overflow-x is `clip`, not `hidden`: clip contains the hero and rooms bleed
+  // without creating a scroll container, so the sticky stages in S2 and S4 keep
+  // working. Do not swap it for overflow-hidden.
+  return (
+    <>
+      <main className="relative min-h-screen overflow-x-clip bg-void text-text-primary">
+        <DNAAnimation />
+        <SiteHeader />
+        <Range />
+        <Arrival />
+        <Film />
+        <HowItWorks />
+        <Rooms />
+        <Expression />
+        <Newsletter />
+        <Share />
+        <Footer />
+        <BackToTop />
+      </main>
+      <Aos />
+      <BackgroundMusic />
+    </>
+  );
+}

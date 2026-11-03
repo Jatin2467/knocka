@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 
-import { Aos } from "@/components/animation/Aos";
-import { BackgroundMusic } from "@/components/animation/BackgroundMusic";
 import { siteConfig } from "@/lib/site-config";
 import { siteUrl } from "@/lib/server/site-url";
 
@@ -133,9 +131,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c"),
           }}
         />
+        {/* AOS and the background music are mounted by LandingPage, not
+            here, so the temporary Coming Soon page loads neither. */}
         {children}
-        <Aos />
-        <BackgroundMusic />
       </body>
     </html>
   );
